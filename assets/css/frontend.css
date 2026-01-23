@@ -1,24 +1,37 @@
 .invento-catalog-grid,
 .invento-archive-grid {
   display: grid;
-  gap: 24px;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--invento-grid-gap, 24px);
+  grid-template-columns: repeat(auto-fit, minmax(var(--invento-grid-columns-min, 240px), 1fr));
 }
 
 .invento-product-card {
-  border: 1px solid #e2e2e2;
-  padding: 16px;
-  background: #fff;
+  border: 1px solid var(--invento-grid-card-border, #e2e2e2);
+  border-radius: var(--invento-grid-card-radius, 0px);
+  padding: var(--invento-grid-card-padding, 16px);
+  background: var(--invento-grid-card-bg, #ffffff);
+  display: grid;
+  gap: var(--invento-grid-section-gap, 10px);
 }
 
 .invento-product-card h3 {
-  margin: 12px 0 8px;
+  margin: 0;
+  font-size: var(--invento-grid-title-size, 18px);
+  color: var(--invento-grid-title-color, #121212);
 }
 
 .invento-card-thumb img {
-  width: 100%;
-  height: auto;
+  width: var(--invento-grid-thumb-width, 100%);
+  height: var(--invento-grid-thumb-height, auto);
   display: block;
+  border-radius: var(--invento-grid-thumb-radius, 0px);
+  object-fit: cover;
+}
+
+.invento-card-excerpt {
+  font-size: var(--invento-grid-excerpt-size, 14px);
+  color: var(--invento-grid-excerpt-color, #535353);
+  margin: 0;
 }
 
 .invento-quote-button {

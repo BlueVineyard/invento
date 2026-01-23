@@ -135,6 +135,20 @@ class Assets implements Service_Interface {
             '--invento-qty-bg'               => $styles['qty_bg'],
             '--invento-qty-text-size'        => $styles['qty_text_size'],
             '--invento-qty-text-color'       => $styles['qty_text_color'],
+            '--invento-grid-columns-min'     => $styles['grid_columns_min'],
+            '--invento-grid-gap'             => $styles['grid_gap'],
+            '--invento-grid-card-bg'         => $styles['grid_card_bg'],
+            '--invento-grid-card-border'     => $styles['grid_card_border'],
+            '--invento-grid-card-radius'     => $styles['grid_card_radius'],
+            '--invento-grid-title-size'      => $styles['grid_title_size'],
+            '--invento-grid-title-color'     => $styles['grid_title_color'],
+            '--invento-grid-excerpt-size'    => $styles['grid_excerpt_size'],
+            '--invento-grid-excerpt-color'   => $styles['grid_excerpt_color'],
+            '--invento-grid-thumb-radius'    => $styles['grid_thumb_radius'],
+            '--invento-grid-thumb-width'     => $styles['grid_thumb_width'],
+            '--invento-grid-thumb-height'    => $styles['grid_thumb_height'],
+            '--invento-grid-card-padding'    => $styles['grid_card_padding'],
+            '--invento-grid-section-gap'     => $styles['grid_section_gap'],
         ];
 
         $lines = [];

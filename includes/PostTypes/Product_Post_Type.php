@@ -37,5 +37,32 @@ class Product_Post_Type implements Service_Interface {
         ];
 
         register_post_type( self::POST_TYPE, $args );
+
+        $tax_labels = [
+            'name'              => __( 'Product Categories', 'invento' ),
+            'singular_name'     => __( 'Product Category', 'invento' ),
+            'search_items'      => __( 'Search Categories', 'invento' ),
+            'all_items'         => __( 'All Categories', 'invento' ),
+            'parent_item'       => __( 'Parent Category', 'invento' ),
+            'parent_item_colon' => __( 'Parent Category:', 'invento' ),
+            'edit_item'         => __( 'Edit Category', 'invento' ),
+            'update_item'       => __( 'Update Category', 'invento' ),
+            'add_new_item'      => __( 'Add New Category', 'invento' ),
+            'new_item_name'     => __( 'New Category Name', 'invento' ),
+            'menu_name'         => __( 'Categories', 'invento' ),
+        ];
+
+        register_taxonomy(
+            'invento_product_category',
+            [ self::POST_TYPE ],
+            [
+                'labels'            => $tax_labels,
+                'hierarchical'      => true,
+                'show_ui'           => true,
+                'show_admin_column' => true,
+                'show_in_rest'      => true,
+                'rewrite'           => [ 'slug' => 'product-category' ],
+            ]
+        );
     }
 }

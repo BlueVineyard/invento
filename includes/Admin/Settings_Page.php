@@ -149,6 +149,27 @@ class Settings_Page implements Service_Interface {
             'qty_bg'                  => '#FFFFFF',
             'qty_text_size'           => '16px',
             'qty_text_color'          => '#535353',
+            'grid_columns_min'        => '240px',
+            'grid_gap'                => '24px',
+            'grid_card_bg'            => '#FFFFFF',
+            'grid_card_border'        => '#E2E2E2',
+            'grid_card_radius'        => '0px',
+            'grid_title_size'         => '18px',
+            'grid_title_color'        => '#121212',
+            'grid_excerpt_size'       => '14px',
+            'grid_excerpt_color'      => '#535353',
+            'grid_thumb_radius'       => '0px',
+            'grid_thumb_width'        => '100%',
+            'grid_thumb_height'       => 'auto',
+            'grid_card_padding'       => '16px',
+            'grid_section_gap'        => '10px',
+            'grid_sections'           => wp_json_encode( [
+                [ 'key' => 'thumb', 'enabled' => true ],
+                [ 'key' => 'title', 'enabled' => true ],
+                [ 'key' => 'excerpt', 'enabled' => true ],
+                [ 'key' => 'quantity', 'enabled' => true ],
+                [ 'key' => 'quote', 'enabled' => true ],
+            ] ),
             'template_sections'       => wp_json_encode( [
                 [ 'key' => 'title', 'enabled' => true ],
                 [ 'key' => 'variations', 'enabled' => true ],
@@ -193,6 +214,10 @@ class Settings_Page implements Service_Interface {
 
             if ( 'template_sections' === $key ) {
                 $sanitized[ $key ] = $this->sanitize_template_sections( $value );
+                continue;
+            }
+            if ( 'grid_sections' === $key ) {
+                $sanitized[ $key ] = $this->sanitize_grid_sections( $value );
                 continue;
             }
 
@@ -306,7 +331,45 @@ class Settings_Page implements Service_Interface {
             submit_button();
             echo '</form>';
         } else {
-            echo '<p>' . esc_html__( 'Product grid style settings will be added here.', 'invento' ) . '</p>';
+            $styles = wp_parse_args( get_option( 'invento_style_settings', [] ), self::get_style_defaults() );
+            echo '<form method="post" action="options.php">';
+            settings_fields( 'invento_style_settings_group' );
+
+            echo '<div class="invento-settings-grid">';
+
+            $this->render_style_card( __( 'Grid Layout', 'invento' ), [
+                $this->style_field( 'grid_columns_min', __( 'Min Column Width', 'invento' ), $styles['grid_columns_min'] ),
+                $this->style_field( 'grid_gap', __( 'Grid Gap', 'invento' ), $styles['grid_gap'] ),
+            ] );
+
+            $this->render_style_card( __( 'Card', 'invento' ), [
+                $this->style_field( 'grid_card_bg', __( 'Card Background', 'invento' ), $styles['grid_card_bg'], 'color' ),
+                $this->style_field( 'grid_card_border', __( 'Card Border', 'invento' ), $styles['grid_card_border'], 'color' ),
+                $this->style_field( 'grid_card_radius', __( 'Card Radius', 'invento' ), $styles['grid_card_radius'] ),
+                $this->style_field( 'grid_card_padding', __( 'Card Padding', 'invento' ), $styles['grid_card_padding'] ),
+                $this->style_field( 'grid_section_gap', __( 'Section Spacing', 'invento' ), $styles['grid_section_gap'] ),
+            ] );
+
+            $this->render_style_card( __( 'Typography', 'invento' ), [
+                $this->style_field( 'grid_title_size', __( 'Title Size', 'invento' ), $styles['grid_title_size'] ),
+                $this->style_field( 'grid_title_color', __( 'Title Color', 'invento' ), $styles['grid_title_color'], 'color' ),
+                $this->style_field( 'grid_excerpt_size', __( 'Excerpt Size', 'invento' ), $styles['grid_excerpt_size'] ),
+                $this->style_field( 'grid_excerpt_color', __( 'Excerpt Color', 'invento' ), $styles['grid_excerpt_color'], 'color' ),
+            ] );
+
+            $this->render_style_card( __( 'Thumbnail', 'invento' ), [
+                $this->style_field( 'grid_thumb_radius', __( 'Thumb Radius', 'invento' ), $styles['grid_thumb_radius'] ),
+                $this->style_field( 'grid_thumb_width', __( 'Thumb Width', 'invento' ), $styles['grid_thumb_width'] ),
+                $this->style_field( 'grid_thumb_height', __( 'Thumb Height', 'invento' ), $styles['grid_thumb_height'] ),
+            ] );
+
+            $this->render_style_card( __( 'Grid Order', 'invento' ), [
+                $this->grid_order_field( $styles['grid_sections'] ),
+            ] );
+
+            echo '</div>';
+            submit_button();
+            echo '</form>';
         }
         echo '</div>';
     }
@@ -411,6 +474,81 @@ class Settings_Page implements Service_Interface {
             'specs'      => __( 'Icon Specs', 'invento' ),
             'stock'      => __( 'Stock Status', 'invento' ),
             'quote'      => __( 'Quote Button', 'invento' ),
+        ];
+    }
+
+    protected function grid_order_field( string $value ): string {
+        $sections = $this->decode_grid_sections( $value );
+        $labels = $this->get_grid_section_labels();
+
+        $html  = '<div class="invento-template-order invento-grid-order">';
+        $html .= '<input type="hidden" name="invento_style_settings[grid_sections]" class="invento-template-order-input invento-grid-order-input" value="' . esc_attr( wp_json_encode( $sections ) ) . '" />';
+        $html .= '<ul class="invento-template-order-list invento-grid-order-list">';
+        foreach ( $sections as $section ) {
+            $key = $section['key'];
+            $enabled = (bool) $section['enabled'];
+            $label = isset( $labels[ $key ] ) ? $labels[ $key ] : $key;
+            $html .= '<li class="invento-template-order-item invento-grid-order-item" data-key="' . esc_attr( $key ) . '">';
+            $html .= '<span class="invento-drag-handle">≡</span>';
+            $html .= '<span class="invento-template-label">' . esc_html( $label ) . '</span>';
+            $html .= '<label class="invento-switch"><input type="checkbox" ' . checked( $enabled, true, false ) . ' /></label>';
+            $html .= '</li>';
+        }
+        $html .= '</ul></div>';
+
+        return $html;
+    }
+
+    protected function sanitize_grid_sections( $value ): string {
+        $decoded = $this->decode_grid_sections( $value );
+        return wp_json_encode( $decoded );
+    }
+
+    protected function decode_grid_sections( $value ): array {
+        $allowed = array_keys( $this->get_grid_section_labels() );
+        $data = [];
+
+        if ( is_string( $value ) ) {
+            $decoded = json_decode( $value, true );
+            if ( is_array( $decoded ) ) {
+                $data = $decoded;
+            }
+        } elseif ( is_array( $value ) ) {
+            $data = $value;
+        }
+
+        $normalized = [];
+        $seen = [];
+        foreach ( $data as $item ) {
+            if ( ! is_array( $item ) || empty( $item['key'] ) ) {
+                continue;
+            }
+            $key = sanitize_key( $item['key'] );
+            if ( in_array( $key, $allowed, true ) && ! isset( $seen[ $key ] ) ) {
+                $normalized[] = [
+                    'key'     => $key,
+                    'enabled' => ! empty( $item['enabled'] ),
+                ];
+                $seen[ $key ] = true;
+            }
+        }
+
+        foreach ( $allowed as $key ) {
+            if ( ! isset( $seen[ $key ] ) ) {
+                $normalized[] = [ 'key' => $key, 'enabled' => true ];
+            }
+        }
+
+        return $normalized;
+    }
+
+    protected function get_grid_section_labels(): array {
+        return [
+            'thumb'    => __( 'Thumbnail', 'invento' ),
+            'title'    => __( 'Title', 'invento' ),
+            'excerpt'  => __( 'Short Description', 'invento' ),
+            'quantity' => __( 'Quantity Selector', 'invento' ),
+            'quote'    => __( 'Quote Button', 'invento' ),
         ];
     }
 
