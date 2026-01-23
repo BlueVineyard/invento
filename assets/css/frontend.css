@@ -1,0 +1,73 @@
+.invento-catalog-grid,
+.invento-archive-grid {
+  display: grid;
+  gap: 24px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.invento-product-card {
+  border: 1px solid #e2e2e2;
+  padding: 16px;
+  background: #fff;
+}
+
+.invento-product-card h3 {
+  margin: 12px 0 8px;
+}
+
+.invento-card-thumb img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.invento-quote-button {
+  display: inline-block;
+  padding: 10px 16px;
+  background: #111;
+  color: #fff;
+  text-decoration: none;
+}
+
+.invento-single-product {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 24px 0;
+}
+
+.invento-product-media {
+  display: grid;
+  gap: 16px;
+}
+
+.invento-gallery {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.invento-gallery-item img {
+  width: 140px;
+  height: 140px;
+  object-fit: cover;
+}
+
+.invento-features-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.invento-feature-icon {
+  font-size: 24px;
+}
+
+.invento-quote-button-wrap {
+  margin-top: 20px;
+}
+
+@media (max-width: 600px) {
+  .invento-product-media {
+    grid-template-columns: 1fr;
+  }
+}
