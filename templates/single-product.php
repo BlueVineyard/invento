@@ -116,60 +116,93 @@ if ( ! $from_shortcode ) {
     </div>
 
     <div class="invento-product-details">
-        <header class="invento-product-header">
-            <h1><?php echo esc_html( get_the_title( $post_id ) ); ?></h1>
-            <?php if ( $short_description ) : ?>
-                <p class="invento-short-description"><?php echo esc_html( $short_description ); ?></p>
-            <?php endif; ?>
-        </header>
-
-        <hr class="invento-divider" />
-
-        <?php if ( ! empty( $variations ) ) : ?>
-            <section class="invento-variations">
-                <h2><?php echo esc_html__( 'Variations', 'invento' ); ?></h2>
-                <?php foreach ( $variations as $variation ) : ?>
-                    <?php
-                    $name = isset( $variation['name'] ) ? $variation['name'] : '';
-                    $options = isset( $variation['options'] ) && is_array( $variation['options'] ) ? $variation['options'] : [];
-                    ?>
-                    <?php if ( $name && $options ) : ?>
-                        <div class="invento-variation-group">
-                            <strong><?php echo esc_html( $name ); ?>:</strong>
-                            <span><?php echo esc_html( implode( ', ', $options ) ); ?></span>
-                        </div>
-                    <?php endif; ?>
-                <?php endforeach; ?>
-            </section>
-            <hr class="invento-divider" />
-        <?php endif; ?>
-
-        <div class="invento-qty-control" data-product-id="<?php echo esc_attr( (string) $post_id ); ?>">
-            <button type="button" class="invento-qty-btn invento-qty-minus" aria-label="<?php echo esc_attr__( 'Decrease quantity', 'invento' ); ?>">-</button>
-            <input type="number" class="invento-qty-input" min="1" value="1" />
-            <button type="button" class="invento-qty-btn invento-qty-plus" aria-label="<?php echo esc_attr__( 'Increase quantity', 'invento' ); ?>">+</button>
-        </div>
-
-        <hr class="invento-divider" />
-
-        <?php if ( ! empty( $features ) ) : ?>
-            <?php Invento\Helpers\View::render( __DIR__ . '/parts/product-features.php', [ 'rows' => $features, 'type' => 'features' ] ); ?>
-        <?php endif; ?>
-
-        <?php if ( ! empty( $icon_rows ) ) : ?>
-            <?php Invento\Helpers\View::render( __DIR__ . '/parts/product-features.php', [ 'rows' => $icon_rows, 'type' => 'icon_text' ] ); ?>
-        <?php endif; ?>
-
         <?php
-        $stock_output = Formatting::format_stock_status( $stock_mode, $stock_quantity, $stock_label );
-        if ( $stock_output ) :
-        ?>
-            <p class="invento-stock-status"><?php echo $stock_output; ?></p>
-        <?php endif; ?>
+        $style_settings = wp_parse_args( get_option( 'invento_style_settings', [] ), Invento\Admin\Settings_Page::get_style_defaults() );
+        $sections = json_decode( (string) $style_settings['template_sections'], true );
+        $sections = is_array( $sections ) ? $sections : [];
 
-        <div class="invento-quote-button-wrap">
-            <?php echo Formatting::render_quote_button( $post_id ); ?>
-        </div>
+        $rendered = [];
+
+        $rendered['title'] = function () use ( $post_id, $short_description ) {
+            echo '<header class="invento-product-header">';
+            echo '<h1>' . esc_html( get_the_title( $post_id ) ) . '</h1>';
+            if ( $short_description ) {
+                echo '<p class="invento-short-description">' . esc_html( $short_description ) . '</p>';
+            }
+            echo '</header>';
+        };
+
+        $rendered['variations'] = function () use ( $variations ) {
+            if ( empty( $variations ) ) {
+                return;
+            }
+            echo '<section class="invento-variations">';
+            echo '<h2>' . esc_html__( 'Variations', 'invento' ) . '</h2>';
+            foreach ( $variations as $variation ) {
+                $name = isset( $variation['name'] ) ? $variation['name'] : '';
+                $options = isset( $variation['options'] ) && is_array( $variation['options'] ) ? $variation['options'] : [];
+                if ( $name && $options ) {
+                    echo '<div class="invento-variation-group">';
+                    echo '<strong>' . esc_html( $name ) . ':</strong> ';
+                    echo '<span>' . esc_html( implode( ', ', $options ) ) . '</span>';
+                    echo '</div>';
+                }
+            }
+            echo '</section>';
+        };
+
+        $rendered['quantity'] = function () use ( $post_id ) {
+            echo '<div class="invento-qty-control" data-product-id="' . esc_attr( (string) $post_id ) . '">';
+            echo '<button type="button" class="invento-qty-btn invento-qty-minus" aria-label="' . esc_attr__( 'Decrease quantity', 'invento' ) . '">-</button>';
+            echo '<input type="number" class="invento-qty-input" min="1" value="1" />';
+            echo '<button type="button" class="invento-qty-btn invento-qty-plus" aria-label="' . esc_attr__( 'Increase quantity', 'invento' ) . '">+</button>';
+            echo '</div>';
+        };
+
+        $rendered['features'] = function () use ( $features ) {
+            if ( ! empty( $features ) ) {
+                Invento\Helpers\View::render( __DIR__ . '/parts/product-features.php', [ 'rows' => $features, 'type' => 'features' ] );
+            }
+        };
+
+        $rendered['specs'] = function () use ( $icon_rows ) {
+            if ( ! empty( $icon_rows ) ) {
+                Invento\Helpers\View::render( __DIR__ . '/parts/product-features.php', [ 'rows' => $icon_rows, 'type' => 'icon_text' ] );
+            }
+        };
+
+        $rendered['stock'] = function () use ( $stock_mode, $stock_quantity, $stock_label ) {
+            $stock_output = Formatting::format_stock_status( $stock_mode, $stock_quantity, $stock_label );
+            if ( $stock_output ) {
+                echo '<p class="invento-stock-status">' . $stock_output . '</p>';
+            }
+        };
+
+        $rendered['quote'] = function () use ( $post_id ) {
+            echo '<div class="invento-quote-button-wrap">';
+            echo Formatting::render_quote_button( $post_id );
+            echo '</div>';
+        };
+
+        $enabled_sections = [];
+        foreach ( $sections as $section ) {
+            if ( ! empty( $section['enabled'] ) && ! empty( $section['key'] ) ) {
+                $enabled_sections[] = $section['key'];
+            }
+        }
+
+        $count = count( $enabled_sections );
+        $index = 0;
+        foreach ( $enabled_sections as $key ) {
+            if ( isset( $rendered[ $key ] ) && is_callable( $rendered[ $key ] ) ) {
+                $rendered[ $key ]();
+                $index++;
+                if ( $index < $count ) {
+                    echo '<hr class="invento-divider" />';
+                }
+            }
+        }
+        ?>
     </div>
 </div>
 

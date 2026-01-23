@@ -38,7 +38,7 @@ class Assets implements Service_Interface {
         wp_enqueue_script(
             'invento-admin-js',
             $this->plugin_url . 'assets/js/admin.js',
-            [ 'jquery', 'wp-util', 'media-editor' ],
+            [ 'jquery', 'wp-util', 'media-editor', 'jquery-ui-sortable' ],
             INVENTO_VERSION,
             true
         );

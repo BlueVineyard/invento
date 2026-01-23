@@ -149,6 +149,15 @@ class Settings_Page implements Service_Interface {
             'qty_bg'                  => '#FFFFFF',
             'qty_text_size'           => '16px',
             'qty_text_color'          => '#535353',
+            'template_sections'       => wp_json_encode( [
+                [ 'key' => 'title', 'enabled' => true ],
+                [ 'key' => 'variations', 'enabled' => true ],
+                [ 'key' => 'quantity', 'enabled' => true ],
+                [ 'key' => 'features', 'enabled' => true ],
+                [ 'key' => 'specs', 'enabled' => true ],
+                [ 'key' => 'stock', 'enabled' => true ],
+                [ 'key' => 'quote', 'enabled' => true ],
+            ] ),
         ];
     }
 
@@ -179,6 +188,11 @@ class Settings_Page implements Service_Interface {
 
             if ( in_array( $key, [ 'title_weight', 'features_title_weight' ], true ) ) {
                 $sanitized[ $key ] = preg_replace( '/[^0-9]/', '', (string) $value );
+                continue;
+            }
+
+            if ( 'template_sections' === $key ) {
+                $sanitized[ $key ] = $this->sanitize_template_sections( $value );
                 continue;
             }
 
@@ -284,6 +298,10 @@ class Settings_Page implements Service_Interface {
                 $this->style_field( 'qty_text_color', __( 'Text Color', 'invento' ), $styles['qty_text_color'], 'color' ),
             ] );
 
+            $this->render_style_card( __( 'Template Order', 'invento' ), [
+                $this->template_order_field( $styles['template_sections'] ),
+            ] );
+
             echo '</div>';
             submit_button();
             echo '</form>';
@@ -318,6 +336,84 @@ class Settings_Page implements Service_Interface {
 
         return '<div class="invento-field"><label>' . esc_html( $label ) . '</label>' . $input . '</div>';
     }
+
+    protected function template_order_field( string $value ): string {
+        $sections = $this->decode_template_sections( $value );
+        $labels = $this->get_template_section_labels();
+
+        $html  = '<div class="invento-template-order">';
+        $html .= '<input type="hidden" name="invento_style_settings[template_sections]" class="invento-template-order-input" value="' . esc_attr( wp_json_encode( $sections ) ) . '" />';
+        $html .= '<ul class="invento-template-order-list">';
+        foreach ( $sections as $section ) {
+            $key = $section['key'];
+            $enabled = (bool) $section['enabled'];
+            $label = isset( $labels[ $key ] ) ? $labels[ $key ] : $key;
+            $html .= '<li class="invento-template-order-item" data-key="' . esc_attr( $key ) . '">';
+            $html .= '<span class="invento-drag-handle">≡</span>';
+            $html .= '<span class="invento-template-label">' . esc_html( $label ) . '</span>';
+            $html .= '<label class="invento-switch"><input type="checkbox" ' . checked( $enabled, true, false ) . ' /></label>';
+            $html .= '</li>';
+        }
+        $html .= '</ul></div>';
+
+        return $html;
+    }
+
+    protected function sanitize_template_sections( $value ): string {
+        $decoded = $this->decode_template_sections( $value );
+        return wp_json_encode( $decoded );
+    }
+
+    protected function decode_template_sections( $value ): array {
+        $allowed = array_keys( $this->get_template_section_labels() );
+        $data = [];
+
+        if ( is_string( $value ) ) {
+            $decoded = json_decode( $value, true );
+            if ( is_array( $decoded ) ) {
+                $data = $decoded;
+            }
+        } elseif ( is_array( $value ) ) {
+            $data = $value;
+        }
+
+        $normalized = [];
+        $seen = [];
+        foreach ( $data as $item ) {
+            if ( ! is_array( $item ) || empty( $item['key'] ) ) {
+                continue;
+            }
+            $key = sanitize_key( $item['key'] );
+            if ( in_array( $key, $allowed, true ) && ! isset( $seen[ $key ] ) ) {
+                $normalized[] = [
+                    'key'     => $key,
+                    'enabled' => ! empty( $item['enabled'] ),
+                ];
+                $seen[ $key ] = true;
+            }
+        }
+
+        foreach ( $allowed as $key ) {
+            if ( ! isset( $seen[ $key ] ) ) {
+                $normalized[] = [ 'key' => $key, 'enabled' => true ];
+            }
+        }
+
+        return $normalized;
+    }
+
+    protected function get_template_section_labels(): array {
+        return [
+            'title'      => __( 'Title & Short Description', 'invento' ),
+            'variations' => __( 'Variations', 'invento' ),
+            'quantity'   => __( 'Quantity Selector', 'invento' ),
+            'features'   => __( 'Main Features', 'invento' ),
+            'specs'      => __( 'Icon Specs', 'invento' ),
+            'stock'      => __( 'Stock Status', 'invento' ),
+            'quote'      => __( 'Quote Button', 'invento' ),
+        ];
+    }
+
 
     public function render_instructions_page(): void {
         if ( ! current_user_can( 'manage_options' ) ) {

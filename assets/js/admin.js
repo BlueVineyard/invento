@@ -191,5 +191,31 @@
 
     toggleStockFields();
     $('#invento_stock_mode').on('change', toggleStockFields);
+
+    var $orderList = $('.invento-template-order-list');
+    if ($orderList.length) {
+      $orderList.sortable({
+        handle: '.invento-drag-handle',
+        axis: 'y'
+      });
+
+      function syncOrder() {
+        var items = [];
+        $orderList.find('.invento-template-order-item').each(function () {
+          var $item = $(this);
+          items.push({
+            key: $item.data('key'),
+            enabled: $item.find('input[type=\"checkbox\"]').is(':checked')
+          });
+        });
+        $('.invento-template-order-input').val(JSON.stringify(items));
+      }
+
+      $orderList.on('change', 'input[type=\"checkbox\"]', syncOrder);
+      $orderList.on('sortupdate', syncOrder);
+      $orderList.on('sortstop', syncOrder);
+      syncOrder();
+    }
+
   });
 })(jQuery);
