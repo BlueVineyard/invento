@@ -35,16 +35,19 @@ class Formatting {
             $global_label = __( 'Request a Quote', 'invento' );
         }
 
+        $product_name = get_the_title( $product_id );
+        $data_attrs   = sprintf( ' data-product-name="%s"', esc_attr( $product_name ) );
+
         if ( 'product' === $mode && ! empty( $url ) ) {
             $final_url   = esc_url( $url );
             $final_label = $label ? $label : $global_label;
-            return sprintf( '<a class="invento-quote-button" href="%s">%s</a>', $final_url, esc_html( $final_label ) );
+            return sprintf( '<a class="invento-quote-button" href="%s"%s>%s</a>', $final_url, $data_attrs, esc_html( $final_label ) );
         }
 
         if ( empty( $global_url ) ) {
             return '';
         }
 
-        return sprintf( '<a class="invento-quote-button" href="%s">%s</a>', esc_url( $global_url ), esc_html( $global_label ) );
+        return sprintf( '<a class="invento-quote-button" href="%s"%s>%s</a>', esc_url( $global_url ), $data_attrs, esc_html( $global_label ) );
     }
 }

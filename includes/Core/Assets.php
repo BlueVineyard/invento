@@ -26,6 +26,8 @@ class Assets implements Service_Interface {
             return;
         }
 
+        wp_enqueue_media();
+
         wp_enqueue_style(
             'invento-admin-css',
             $this->plugin_url . 'assets/css/admin.css',

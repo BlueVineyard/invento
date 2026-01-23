@@ -26,3 +26,13 @@
 .invento-stock-field {
   display: none;
 }
+
+.invento-video-field .button {
+  margin-left: 8px;
+}
+
+.invento-video-field .description {
+  display: block;
+  margin-top: 6px;
+  color: #646970;
+}

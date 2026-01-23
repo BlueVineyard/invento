@@ -154,12 +154,40 @@
     }
   }
 
+  function bindVideoSelect() {
+    $('.invento-video-select').on('click', function (e) {
+      e.preventDefault();
+      var target = $(this).data('target');
+      var $input = $(target);
+      if (!$input.length) return;
+
+      var frame = wp.media({
+        title: 'Select Video',
+        multiple: false,
+        library: { type: 'video' }
+      });
+
+      frame.on('select', function () {
+        var selection = frame.state().get('selection').first();
+        if (!selection) return;
+        var url = selection.get('url');
+        if (url) {
+          $input.val(url).trigger('change');
+          $('#invento_featured_video_type').val('self_hosted');
+        }
+      });
+
+      frame.open();
+    });
+  }
+
   $(document).ready(function () {
     $('.invento-repeater').each(function () {
       bindRepeater($(this));
     });
 
     bindGallery();
+    bindVideoSelect();
 
     toggleStockFields();
     $('#invento_stock_mode').on('change', toggleStockFields);

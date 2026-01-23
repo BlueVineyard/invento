@@ -66,6 +66,9 @@ class Product_Meta_Boxes implements Service_Interface {
         $stock_quantity    = get_post_meta( $post->ID, '_invento_stock_quantity', true );
         $stock_label       = get_post_meta( $post->ID, '_invento_stock_label', true );
         $stock_mode        = $stock_mode ? $stock_mode : 'none';
+        $video_type        = get_post_meta( $post->ID, '_invento_featured_video_type', true );
+        $video_url         = get_post_meta( $post->ID, '_invento_featured_video_url', true );
+        $video_type        = $video_type ? $video_type : 'none';
 
         echo '<p><label for="invento_short_description"><strong>' . esc_html__( 'Short Description', 'invento' ) . '</strong></label></p>';
         echo '<textarea id="invento_short_description" name="invento_short_description" rows="4" class="widefat">' . esc_textarea( $short_description ) . '</textarea>';
@@ -87,6 +90,24 @@ class Product_Meta_Boxes implements Service_Interface {
         echo '<p class="invento-stock-field invento-stock-label">';
         echo '<label for="invento_stock_label">' . esc_html__( 'Label', 'invento' ) . '</label> ';
         echo '<input type="text" id="invento_stock_label" name="invento_stock_label" class="regular-text" value="' . esc_attr( $stock_label ) . '" />';
+        echo '</p>';
+
+        echo '<hr />';
+        echo '<p><strong>' . esc_html__( 'Featured Video', 'invento' ) . '</strong></p>';
+        echo '<p><label for="invento_featured_video_type">' . esc_html__( 'Video Type', 'invento' ) . '</label> ';
+        echo '<select id="invento_featured_video_type" name="invento_featured_video_type">';
+        echo '<option value="none" ' . selected( $video_type, 'none', false ) . '>' . esc_html__( 'None', 'invento' ) . '</option>';
+        echo '<option value="self_hosted" ' . selected( $video_type, 'self_hosted', false ) . '>' . esc_html__( 'Self Hosted', 'invento' ) . '</option>';
+        echo '<option value="youtube" ' . selected( $video_type, 'youtube', false ) . '>' . esc_html__( 'YouTube', 'invento' ) . '</option>';
+        echo '<option value="vimeo" ' . selected( $video_type, 'vimeo', false ) . '>' . esc_html__( 'Vimeo', 'invento' ) . '</option>';
+        echo '<option value="other" ' . selected( $video_type, 'other', false ) . '>' . esc_html__( 'Other / Embed URL', 'invento' ) . '</option>';
+        echo '</select></p>';
+
+        echo '<p class="invento-video-field">';
+        echo '<label for="invento_featured_video_url">' . esc_html__( 'Video URL', 'invento' ) . '</label> ';
+        echo '<input type="url" id="invento_featured_video_url" name="invento_featured_video_url" class="regular-text" value="' . esc_attr( $video_url ) . '" />';
+        echo '<button type="button" class="button invento-video-select" data-target="#invento_featured_video_url">' . esc_html__( 'Select from Media', 'invento' ) . '</button>';
+        echo '<span class="description">' . esc_html__( 'Poster uses the Featured Image.', 'invento' ) . '</span>';
         echo '</p>';
     }
 
@@ -239,5 +260,14 @@ class Product_Meta_Boxes implements Service_Interface {
 
         $quote_url = isset( $_POST['invento_quote_button_url'] ) ? esc_url_raw( wp_unslash( $_POST['invento_quote_button_url'] ) ) : '';
         update_post_meta( $post_id, '_invento_quote_button_url', $quote_url );
+
+        $video_type = isset( $_POST['invento_featured_video_type'] ) ? sanitize_key( wp_unslash( $_POST['invento_featured_video_type'] ) ) : 'none';
+        if ( ! in_array( $video_type, [ 'none', 'self_hosted', 'youtube', 'vimeo', 'other' ], true ) ) {
+            $video_type = 'none';
+        }
+        update_post_meta( $post_id, '_invento_featured_video_type', $video_type );
+
+        $video_url = isset( $_POST['invento_featured_video_url'] ) ? esc_url_raw( wp_unslash( $_POST['invento_featured_video_url'] ) ) : '';
+        update_post_meta( $post_id, '_invento_featured_video_url', $video_url );
     }
 }
