@@ -20,7 +20,7 @@ class Assets implements Service_Interface {
         }
 
         $is_product_screen = ( 'invento_product' === $screen->post_type );
-        $is_settings = ( 'toplevel_page_invento-settings' === $screen->id );
+        $is_settings = ( 'toplevel_page_invento-settings' === $screen->id || 0 === strpos( $screen->id, 'invento_page_' ) );
 
         if ( ! $is_product_screen && ! $is_settings ) {
             return;
@@ -88,5 +88,66 @@ class Assets implements Service_Interface {
             INVENTO_VERSION,
             true
         );
+
+        $css = $this->get_style_variables();
+        if ( $css ) {
+            wp_add_inline_style( 'invento-frontend-css', $css );
+        }
+    }
+
+    protected function get_style_variables(): string {
+        $styles = wp_parse_args( get_option( 'invento_style_settings', [] ), \Invento\Admin\Settings_Page::get_style_defaults() );
+
+        $vars = [
+            '--invento-container-width'      => $styles['container_width'],
+            '--invento-column-gap'           => $styles['column_gap'],
+            '--invento-divider-color'        => $styles['divider_color'],
+            '--invento-title-size'           => $styles['title_size'],
+            '--invento-title-weight'         => $styles['title_weight'],
+            '--invento-title-color'          => $styles['title_color'],
+            '--invento-short-size'           => $styles['short_desc_size'],
+            '--invento-short-color'          => $styles['short_desc_color'],
+            '--invento-media-max-height'     => $styles['media_max_height'],
+            '--invento-media-radius'         => $styles['media_radius'],
+            '--invento-thumb-height'         => $styles['thumb_height'],
+            '--invento-thumb-radius'         => $styles['thumb_radius'],
+            '--invento-thumb-bg'             => $styles['thumb_bg'],
+            '--invento-thumb-active-border'  => $styles['thumb_active_border'],
+            '--invento-thumb-count'          => $styles['thumb_count'],
+            '--invento-features-box-width'   => $styles['features_box_width'],
+            '--invento-features-box-radius'  => $styles['features_box_radius'],
+            '--invento-features-box-border'  => $styles['features_box_border'],
+            '--invento-features-box-padding' => $styles['features_box_padding'],
+            '--invento-features-title-size'  => $styles['features_title_size'],
+            '--invento-features-title-weight'=> $styles['features_title_weight'],
+            '--invento-specs-box-bg'         => $styles['specs_box_bg'],
+            '--invento-specs-box-radius'     => $styles['specs_box_radius'],
+            '--invento-specs-box-padding'    => $styles['specs_box_padding'],
+            '--invento-specs-box-gap'        => $styles['specs_box_gap'],
+            '--invento-specs-card-bg'        => $styles['specs_card_bg'],
+            '--invento-specs-card-radius'    => $styles['specs_card_radius'],
+            '--invento-quote-bg'             => $styles['quote_bg'],
+            '--invento-quote-color'          => $styles['quote_color'],
+            '--invento-quote-radius'         => $styles['quote_radius'],
+            '--invento-qty-size'             => $styles['qty_size'],
+            '--invento-qty-radius'           => $styles['qty_radius'],
+            '--invento-qty-border'           => $styles['qty_border'],
+            '--invento-qty-bg'               => $styles['qty_bg'],
+            '--invento-qty-text-size'        => $styles['qty_text_size'],
+            '--invento-qty-text-color'       => $styles['qty_text_color'],
+        ];
+
+        $lines = [];
+        foreach ( $vars as $key => $value ) {
+            if ( '' !== (string) $value ) {
+                $lines[] = $key . ':' . $value . ';';
+            }
+        }
+
+        if ( empty( $lines ) ) {
+            return '';
+        }
+
+        return ':root{' . implode( '', $lines ) . '}';
     }
 }

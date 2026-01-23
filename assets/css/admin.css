@@ -36,3 +36,63 @@
   margin-top: 6px;
   color: #646970;
 }
+
+.invento-settings .nav-tab-wrapper {
+  margin-bottom: 16px;
+}
+
+.invento-settings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.invento-card {
+  background: #fff;
+  border: 1px solid #e6e6e6;
+  border-radius: 10px;
+  padding: 16px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.invento-card h3 {
+  margin: 0 0 12px;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: #444;
+}
+
+.invento-card-fields {
+  display: grid;
+  gap: 10px;
+}
+
+.invento-field {
+  display: grid;
+  gap: 6px;
+}
+
+.invento-field label {
+  font-weight: 600;
+  color: #2c2c2c;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.invento-field input[type="text"],
+.invento-field input[type="number"] {
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid #dcdcdc;
+  padding: 0 10px;
+}
+
+.invento-field input[type="color"] {
+  height: 36px;
+  padding: 0;
+  border: none;
+  background: transparent;
+}
