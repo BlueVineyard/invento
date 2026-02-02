@@ -40,15 +40,20 @@ class Sanitization {
             $value = [];
         }
 
-        $allowed = self::allowed_svg_html();
         $rows = [];
 
         foreach ( $value as $row ) {
             if ( ! is_array( $row ) ) {
                 continue;
             }
+            $icon_type = isset( $row['icon_type'] ) ? $row['icon_type'] : '';
+            if ( is_numeric( $icon_type ) ) {
+                $icon_type = (string) absint( $icon_type );
+            } else {
+                $icon_type = wp_kses( $icon_type, self::allowed_svg_html() );
+            }
             $rows[] = [
-                'icon_type'   => isset( $row['icon_type'] ) ? wp_kses( $row['icon_type'], $allowed ) : '',
+                'icon_type'   => $icon_type,
                 'title'       => isset( $row['title'] ) ? sanitize_text_field( $row['title'] ) : '',
                 'description' => isset( $row['description'] ) ? sanitize_text_field( $row['description'] ) : '',
             ];

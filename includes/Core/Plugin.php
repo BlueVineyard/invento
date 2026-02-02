@@ -7,6 +7,7 @@ use Invento\Admin\Settings_Page;
 use Invento\Frontend\Frontend_Loader;
 use Invento\Frontend\Shortcodes;
 use Invento\PostTypes\Product_Post_Type;
+use Invento\Quote\Quote_Form;
 
 class Plugin {
     protected string $plugin_dir;
@@ -40,6 +41,7 @@ class Plugin {
             new Admin_Columns(),
             new Frontend_Loader( $this->plugin_dir ),
             new Shortcodes( $this->plugin_dir ),
+            new Quote_Form(),
         ];
     }
 }

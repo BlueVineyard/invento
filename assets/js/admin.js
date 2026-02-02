@@ -26,8 +26,23 @@
     rows.forEach(function (row) {
       var $row = $(template);
       $row.find('[data-field="name"]').val(row.name || '');
-      $row.find('[data-field="options"]').val(Array.isArray(row.options) ? row.options.join(', ') : '');
-      $row.find('[data-field="icon_type"]').val(row.icon_type || '');
+      $row.find('[data-field="options"]').val(Array.isArray(row.options) ? row.options.join(', ') : (row.options || ''));
+      var iconVal = row.icon_type || '';
+      $row.find('[data-field="icon_type"]').val(iconVal);
+      if (iconVal && !isNaN(iconVal) && parseInt(iconVal) > 0) {
+        var $upload = $row.find('.invento-icon-upload');
+        var attachmentId = parseInt(iconVal);
+        var att = wp.media.attachment(attachmentId);
+        (function($upload, att) {
+          att.fetch().then(function() {
+            var url = att.get('url');
+            if (url) {
+              $upload.find('.invento-icon-preview').attr('src', url).show();
+              $upload.find('.invento-icon-remove').show();
+            }
+          });
+        })($upload, att);
+      }
       $row.find('[data-field="title"]').val(row.title || '');
       $row.find('[data-field="description"]').val(row.description || '');
       $rowsContainer.append($row);
@@ -93,7 +108,43 @@
       serializeRepeater($wrapper);
     });
 
-    $wrapper.on('input change', 'input, textarea', function () {
+    $wrapper.on('input change', 'input, textarea, select', function () {
+      serializeRepeater($wrapper);
+    });
+
+    $wrapper.closest('form').on('submit', function () {
+      serializeRepeater($wrapper);
+    });
+
+    $wrapper.on('click', '.invento-icon-select', function (e) {
+      e.preventDefault();
+      var $upload = $(this).closest('.invento-icon-upload');
+      var frame = wp.media({
+        title: 'Select Icon Image',
+        multiple: false,
+        library: { type: 'image' }
+      });
+
+      frame.on('select', function () {
+        var attachment = frame.state().get('selection').first();
+        if (!attachment) return;
+        var id = attachment.get('id');
+        var url = attachment.get('url');
+        $upload.find('[data-field="icon_type"]').val(id);
+        $upload.find('.invento-icon-preview').attr('src', url).show();
+        $upload.find('.invento-icon-remove').show();
+        serializeRepeater($wrapper);
+      });
+
+      frame.open();
+    });
+
+    $wrapper.on('click', '.invento-icon-remove', function (e) {
+      e.preventDefault();
+      var $upload = $(this).closest('.invento-icon-upload');
+      $upload.find('[data-field="icon_type"]').val('');
+      $upload.find('.invento-icon-preview').attr('src', '').hide();
+      $(this).hide();
       serializeRepeater($wrapper);
     });
   }

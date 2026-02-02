@@ -2,6 +2,7 @@
 namespace Invento\Admin;
 
 use Invento\Core\Service_Interface;
+use Invento\Quote\Quote_Form;
 
 class Settings_Page implements Service_Interface {
     public function register(): void {
@@ -40,6 +41,15 @@ class Settings_Page implements Service_Interface {
 
         add_submenu_page(
             'invento-settings',
+            __( 'Quote Form', 'invento' ),
+            __( 'Quote Form', 'invento' ),
+            'manage_options',
+            'invento-quote-form',
+            [ $this, 'render_quote_form_page' ]
+        );
+
+        add_submenu_page(
+            'invento-settings',
             __( 'Instructions', 'invento' ),
             __( 'Instructions', 'invento' ),
             'manage_options',
@@ -59,6 +69,12 @@ class Settings_Page implements Service_Interface {
             'invento_style_settings_group',
             'invento_style_settings',
             [ $this, 'sanitize_style_settings' ]
+        );
+
+        register_setting(
+            'invento_quote_form_group',
+            'invento_quote_form_settings',
+            [ $this, 'sanitize_quote_form_settings' ]
         );
 
         add_settings_section(
@@ -99,6 +115,14 @@ class Settings_Page implements Service_Interface {
             'invento-settings',
             'invento_general'
         );
+
+        add_settings_field(
+            'enable_variations',
+            __( 'Enable Variations', 'invento' ),
+            [ $this, 'render_enable_variations_field' ],
+            'invento-settings',
+            'invento_general'
+        );
     }
 
     public function sanitize_settings( array $settings ): array {
@@ -107,6 +131,7 @@ class Settings_Page implements Service_Interface {
         $sanitized['quote_button_global_label'] = isset( $settings['quote_button_global_label'] ) ? sanitize_text_field( $settings['quote_button_global_label'] ) : '';
         $sanitized['catalog_layout']            = isset( $settings['catalog_layout'] ) && in_array( $settings['catalog_layout'], [ 'grid', 'list' ], true ) ? $settings['catalog_layout'] : 'grid';
         $sanitized['products_per_page']         = isset( $settings['products_per_page'] ) ? max( 1, absint( $settings['products_per_page'] ) ) : 12;
+        $sanitized['enable_variations']         = ! empty( $settings['enable_variations'] ) ? '1' : '0';
 
         return $sanitized;
     }
@@ -170,12 +195,24 @@ class Settings_Page implements Service_Interface {
                 [ 'key' => 'quantity', 'enabled' => true ],
                 [ 'key' => 'quote', 'enabled' => true ],
             ] ),
+            'popup_max_width'         => '520px',
+            'popup_bg'                => '#FFFFFF',
+            'popup_radius'            => '12px',
+            'popup_padding'           => '32px',
+            'popup_border'            => 'none',
+            'popup_overlay_bg'        => 'rgba(0,0,0,0.6)',
+            'popup_title_size'        => '22px',
+            'popup_title_weight'      => '600',
+            'popup_title_color'       => '#121212',
+            'popup_close_size'        => '28px',
+            'popup_close_color'       => '#666666',
             'template_sections'       => wp_json_encode( [
                 [ 'key' => 'title', 'enabled' => true ],
                 [ 'key' => 'variations', 'enabled' => true ],
                 [ 'key' => 'quantity', 'enabled' => true ],
                 [ 'key' => 'features', 'enabled' => true ],
                 [ 'key' => 'specs', 'enabled' => true ],
+                [ 'key' => 'description', 'enabled' => true ],
                 [ 'key' => 'stock', 'enabled' => true ],
                 [ 'key' => 'quote', 'enabled' => true ],
             ] ),
@@ -197,17 +234,22 @@ class Settings_Page implements Service_Interface {
                 continue;
             }
 
-            if ( false !== strpos( $key, 'color' ) || in_array( $key, [ 'divider_color', 'thumb_bg', 'thumb_active_border', 'features_box_border', 'specs_box_bg', 'specs_card_bg', 'quote_bg', 'quote_color', 'qty_border', 'qty_bg', 'qty_text_color' ], true ) ) {
+            if ( false !== strpos( $key, 'color' ) || in_array( $key, [ 'divider_color', 'thumb_bg', 'thumb_active_border', 'features_box_border', 'specs_box_bg', 'specs_card_bg', 'quote_bg', 'quote_color', 'qty_border', 'qty_bg', 'qty_text_color', 'popup_bg' ], true ) ) {
                 $sanitized[ $key ] = sanitize_hex_color( $value ) ? sanitize_hex_color( $value ) : $defaults[ $key ];
                 continue;
             }
 
-            if ( in_array( $key, [ 'features_box_padding', 'specs_box_padding' ], true ) ) {
+            if ( in_array( $key, [ 'features_box_padding', 'specs_box_padding', 'popup_padding' ], true ) ) {
                 $sanitized[ $key ] = preg_replace( '/[^0-9\\s.%a-z]/i', '', $value );
                 continue;
             }
 
-            if ( in_array( $key, [ 'title_weight', 'features_title_weight' ], true ) ) {
+            if ( in_array( $key, [ 'popup_overlay_bg', 'popup_border' ], true ) ) {
+                $sanitized[ $key ] = preg_replace( '/[^0-9\\s.%a-z(),#]/i', '', $value );
+                continue;
+            }
+
+            if ( in_array( $key, [ 'title_weight', 'features_title_weight', 'popup_title_weight' ], true ) ) {
                 $sanitized[ $key ] = preg_replace( '/[^0-9]/', '', (string) $value );
                 continue;
             }
@@ -325,6 +367,20 @@ class Settings_Page implements Service_Interface {
 
             $this->render_style_card( __( 'Template Order', 'invento' ), [
                 $this->template_order_field( $styles['template_sections'] ),
+            ] );
+
+            $this->render_style_card( __( 'Quote Popup', 'invento' ), [
+                $this->style_field( 'popup_max_width', __( 'Max Width', 'invento' ), $styles['popup_max_width'] ),
+                $this->style_field( 'popup_bg', __( 'Background', 'invento' ), $styles['popup_bg'], 'color' ),
+                $this->style_field( 'popup_radius', __( 'Border Radius', 'invento' ), $styles['popup_radius'] ),
+                $this->style_field( 'popup_padding', __( 'Padding', 'invento' ), $styles['popup_padding'] ),
+                $this->style_field( 'popup_border', __( 'Border', 'invento' ), $styles['popup_border'] ),
+                $this->style_field( 'popup_overlay_bg', __( 'Overlay Background', 'invento' ), $styles['popup_overlay_bg'] ),
+                $this->style_field( 'popup_title_size', __( 'Title Size', 'invento' ), $styles['popup_title_size'] ),
+                $this->style_field( 'popup_title_weight', __( 'Title Weight', 'invento' ), $styles['popup_title_weight'] ),
+                $this->style_field( 'popup_title_color', __( 'Title Color', 'invento' ), $styles['popup_title_color'], 'color' ),
+                $this->style_field( 'popup_close_size', __( 'Close Button Size', 'invento' ), $styles['popup_close_size'] ),
+                $this->style_field( 'popup_close_color', __( 'Close Button Color', 'invento' ), $styles['popup_close_color'], 'color' ),
             ] );
 
             echo '</div>';
@@ -558,10 +614,302 @@ class Settings_Page implements Service_Interface {
             return;
         }
 
+        $tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'custom-fields';
+        if ( ! in_array( $tab, [ 'custom-fields', 'shortcodes' ], true ) ) {
+            $tab = 'custom-fields';
+        }
+
         echo '<div class="wrap invento-settings">';
         echo '<h1>' . esc_html__( 'Invento Instructions', 'invento' ) . '</h1>';
-        echo '<p>' . esc_html__( 'Instructions and usage guidance will be added here.', 'invento' ) . '</p>';
+        echo '<h2 class="nav-tab-wrapper">';
+        echo '<a class="nav-tab ' . ( 'custom-fields' === $tab ? 'nav-tab-active' : '' ) . '" href="' . esc_url( admin_url( 'admin.php?page=invento-instructions&tab=custom-fields' ) ) . '">' . esc_html__( 'Custom Fields Info', 'invento' ) . '</a>';
+        echo '<a class="nav-tab ' . ( 'shortcodes' === $tab ? 'nav-tab-active' : '' ) . '" href="' . esc_url( admin_url( 'admin.php?page=invento-instructions&tab=shortcodes' ) ) . '">' . esc_html__( 'Shortcodes Info', 'invento' ) . '</a>';
+        echo '</h2>';
+
+        if ( 'custom-fields' === $tab ) {
+            $this->render_custom_fields_info();
+        } elseif ( 'shortcodes' === $tab ) {
+            $this->render_shortcodes_info();
+        }
+
         echo '</div>';
+    }
+
+    protected function render_custom_fields_info(): void {
+        $fields = [
+            [
+                'title' => __( 'Short Description', 'invento' ),
+                'key'   => '_invento_short_description',
+                'type'  => 'string',
+                'code'  => '$short_description = get_post_meta( get_the_ID(), \'_invento_short_description\', true );
+echo esc_html( $short_description );',
+            ],
+            [
+                'title' => __( 'Stock Mode', 'invento' ),
+                'key'   => '_invento_stock_mode',
+                'type'  => 'string (none | simple | label)',
+                'code'  => '$stock_mode = get_post_meta( get_the_ID(), \'_invento_stock_mode\', true );
+// Returns: "none", "simple", or "label"
+echo esc_html( $stock_mode );',
+            ],
+            [
+                'title' => __( 'Stock Quantity', 'invento' ),
+                'key'   => '_invento_stock_quantity',
+                'type'  => 'integer',
+                'code'  => '$stock_qty = (int) get_post_meta( get_the_ID(), \'_invento_stock_quantity\', true );
+echo esc_html( $stock_qty );',
+            ],
+            [
+                'title' => __( 'Stock Label', 'invento' ),
+                'key'   => '_invento_stock_label',
+                'type'  => 'string',
+                'code'  => '$stock_label = get_post_meta( get_the_ID(), \'_invento_stock_label\', true );
+echo esc_html( $stock_label );',
+            ],
+            [
+                'title' => __( 'Featured Video Type', 'invento' ),
+                'key'   => '_invento_featured_video_type',
+                'type'  => 'string (none | self_hosted | youtube | vimeo | other)',
+                'code'  => '$video_type = get_post_meta( get_the_ID(), \'_invento_featured_video_type\', true );
+echo esc_html( $video_type );',
+            ],
+            [
+                'title' => __( 'Featured Video URL', 'invento' ),
+                'key'   => '_invento_featured_video_url',
+                'type'  => 'URL string',
+                'code'  => '$video_url = get_post_meta( get_the_ID(), \'_invento_featured_video_url\', true );
+echo esc_url( $video_url );',
+            ],
+            [
+                'title' => __( 'Gallery Image IDs', 'invento' ),
+                'key'   => '_invento_gallery_ids',
+                'type'  => 'JSON array of attachment IDs',
+                'code'  => '$gallery_ids = json_decode( (string) get_post_meta( get_the_ID(), \'_invento_gallery_ids\', true ), true );
+$gallery_ids = is_array( $gallery_ids ) ? $gallery_ids : [];
+
+foreach ( $gallery_ids as $attachment_id ) {
+    echo wp_get_attachment_image( (int) $attachment_id, \'medium\' );
+}',
+            ],
+            [
+                'title' => __( 'Variations', 'invento' ),
+                'key'   => '_invento_variations',
+                'type'  => 'JSON array of objects [{name, options[]}, ...]',
+                'code'  => '$variations = json_decode( (string) get_post_meta( get_the_ID(), \'_invento_variations\', true ), true );
+$variations = is_array( $variations ) ? $variations : [];
+
+foreach ( $variations as $variation ) {
+    $name    = isset( $variation[\'name\'] ) ? $variation[\'name\'] : \'\';
+    $options = isset( $variation[\'options\'] ) && is_array( $variation[\'options\'] ) ? $variation[\'options\'] : [];
+
+    echo \'<strong>\' . esc_html( $name ) . \':</strong> \';
+    echo esc_html( implode( \', \', $options ) );
+    echo \'<br>\';
+}',
+            ],
+            [
+                'title' => __( 'Icon Specs (Icon + Text Rows)', 'invento' ),
+                'key'   => '_invento_icon_text_rows',
+                'type'  => 'JSON array of objects [{icon_type, title, description}, ...]',
+                'code'  => '$icon_rows = json_decode( (string) get_post_meta( get_the_ID(), \'_invento_icon_text_rows\', true ), true );
+$icon_rows = is_array( $icon_rows ) ? $icon_rows : [];
+
+foreach ( $icon_rows as $row ) {
+    $icon  = isset( $row[\'icon_type\'] ) ? $row[\'icon_type\'] : \'\';
+    $title = isset( $row[\'title\'] ) ? $row[\'title\'] : \'\';
+    $desc  = isset( $row[\'description\'] ) ? $row[\'description\'] : \'\';
+
+    echo \'<i class="\' . esc_attr( $icon ) . \'"></i> \';
+    echo \'<strong>\' . esc_html( $title ) . \'</strong>: \';
+    echo esc_html( $desc ) . \'<br>\';
+}',
+            ],
+            [
+                'title' => __( 'Main Features', 'invento' ),
+                'key'   => '_invento_main_features',
+                'type'  => 'JSON array of objects [{title, description}, ...]',
+                'code'  => '$features = json_decode( (string) get_post_meta( get_the_ID(), \'_invento_main_features\', true ), true );
+$features = is_array( $features ) ? $features : [];
+
+foreach ( $features as $feature ) {
+    $title = isset( $feature[\'title\'] ) ? $feature[\'title\'] : \'\';
+    $desc  = isset( $feature[\'description\'] ) ? $feature[\'description\'] : \'\';
+
+    echo \'<h4>\' . esc_html( $title ) . \'</h4>\';
+    echo \'<p>\' . esc_html( $desc ) . \'</p>\';
+}',
+            ],
+            [
+                'title' => __( 'Quote Button Mode', 'invento' ),
+                'key'   => '_invento_quote_button_mode',
+                'type'  => 'string (global | product | disabled)',
+                'code'  => '$quote_mode = get_post_meta( get_the_ID(), \'_invento_quote_button_mode\', true );
+// Returns: "global", "product", or "disabled"
+echo esc_html( $quote_mode );',
+            ],
+            [
+                'title' => __( 'Quote Button Label', 'invento' ),
+                'key'   => '_invento_quote_button_label',
+                'type'  => 'string',
+                'code'  => '$quote_label = get_post_meta( get_the_ID(), \'_invento_quote_button_label\', true );
+echo esc_html( $quote_label );',
+            ],
+            [
+                'title' => __( 'Quote Button URL', 'invento' ),
+                'key'   => '_invento_quote_button_url',
+                'type'  => 'URL string',
+                'code'  => '$quote_url = get_post_meta( get_the_ID(), \'_invento_quote_button_url\', true );
+echo esc_url( $quote_url );',
+            ],
+            [
+                'title' => __( 'Product Description', 'invento' ),
+                'key'   => '_invento_description',
+                'type'  => 'HTML string (WYSIWYG rich text)',
+                'code'  => '$description = get_post_meta( get_the_ID(), \'_invento_description\', true );
+if ( $description && \'\' !== trim( $description ) ) {
+    echo wp_kses_post( wpautop( $description ) );
+}',
+            ],
+        ];
+
+        echo '<p>' . esc_html__( 'Use these snippets inside any WordPress loop (e.g. WP_Query, get_posts) to display product data. All snippets use get_the_ID() so they work in any query context.', 'invento' ) . '</p>';
+
+        echo '<div class="invento-settings-grid">';
+        foreach ( $fields as $field ) {
+            echo '<div class="invento-card">';
+            echo '<h3>' . esc_html( $field['title'] ) . '</h3>';
+            echo '<div class="invento-card-fields">';
+            echo '<div class="invento-field"><label>' . esc_html__( 'Meta Key', 'invento' ) . '</label>';
+            echo '<code>' . esc_html( $field['key'] ) . '</code></div>';
+            echo '<div class="invento-field"><label>' . esc_html__( 'Value Type', 'invento' ) . '</label>';
+            echo '<code>' . esc_html( $field['type'] ) . '</code></div>';
+            echo '<div class="invento-field"><label>' . esc_html__( 'PHP Snippet', 'invento' ) . '</label>';
+            echo '<pre class="invento-code-block"><code>' . esc_html( $field['code'] ) . '</code></pre></div>';
+            echo '</div>';
+            echo '</div>';
+        }
+        echo '</div>';
+    }
+
+    protected function render_shortcodes_info(): void {
+        $shortcodes = [
+            [
+                'title'       => __( 'Product Catalog', 'invento' ),
+                'shortcode'   => '[invento_catalog]',
+                'description' => __( 'Displays a paginated grid or list of all products. Respects the global layout and per-page settings from the General Settings page.', 'invento' ),
+                'attributes'  => [
+                    'layout'   => __( 'Display layout. Values: "grid" or "list". Default: value from General Settings.', 'invento' ),
+                    'per_page' => __( 'Number of products per page. Default: value from General Settings.', 'invento' ),
+                    'taxonomy' => __( 'Taxonomy slug to filter by. Default: empty (all products).', 'invento' ),
+                    'category' => __( 'Category term slug to filter by. Default: empty (all categories).', 'invento' ),
+                ],
+                'examples'    => [
+                    '[invento_catalog]',
+                    '[invento_catalog layout="list" per_page="6"]',
+                    '[invento_catalog category="electronics"]',
+                ],
+            ],
+            [
+                'title'       => __( 'Single Product', 'invento' ),
+                'shortcode'   => '[invento_product]',
+                'description' => __( 'Embeds a single product detail view anywhere on your site. Requires the product ID.', 'invento' ),
+                'attributes'  => [
+                    'id' => __( 'The product post ID. Required.', 'invento' ),
+                ],
+                'examples'    => [
+                    '[invento_product id="123"]',
+                    '[invento_product id="456"]',
+                ],
+            ],
+            [
+                'title'       => __( 'Product Field', 'invento' ),
+                'shortcode'   => '[invento_field]',
+                'description' => __( 'Outputs a single meta field value for a product. Works inside any WordPress loop automatically, or accepts an explicit product ID. For simple fields (text, number, URL) the raw value is returned. For complex fields (gallery, variations, specs, features) structured HTML is returned.', 'invento' ),
+                'attributes'  => [
+                    'field' => __( 'The field name. Required. See accepted values below.', 'invento' ),
+                    'id'    => __( 'The product post ID. Optional — defaults to the current post in the loop.', 'invento' ),
+                ],
+                'examples'    => [
+                    '[invento_field field="short_description"]',
+                    '[invento_field field="stock_quantity" id="123"]',
+                    '[invento_field field="gallery" id="456"]',
+                    '[invento_field field="variations"]',
+                    '[invento_field field="gallery_first"]',
+                    '[invento_field field="features" id="789"]',
+                    '[invento_field field="description"]',
+                ],
+                'field_values' => [
+                    'short_description' => __( 'Product short description text.', 'invento' ),
+                    'stock_mode'        => __( 'Stock mode: "none", "simple", or "label".', 'invento' ),
+                    'stock_quantity'    => __( 'Stock quantity number.', 'invento' ),
+                    'stock_label'       => __( 'Custom stock label text.', 'invento' ),
+                    'video_type'        => __( 'Video type: "none", "self_hosted", "youtube", "vimeo", or "other".', 'invento' ),
+                    'video_url'         => __( 'Video URL.', 'invento' ),
+                    'gallery'           => __( 'All gallery images rendered as &lt;img&gt; tags.', 'invento' ),
+                    'gallery_first'     => __( 'First gallery image only, rendered as a single &lt;img&gt; tag.', 'invento' ),
+                    'variations'        => __( 'Variations rendered as name: options pairs.', 'invento' ),
+                    'icon_specs'        => __( 'Icon spec rows rendered with icon, title, and description.', 'invento' ),
+                    'features'          => __( 'Main features rendered with title and description.', 'invento' ),
+                    'quote_mode'        => __( 'Quote button mode: "global", "product", or "disabled".', 'invento' ),
+                    'quote_label'       => __( 'Quote button label text.', 'invento' ),
+                    'quote_url'         => __( 'Quote button URL.', 'invento' ),
+                    'description'       => __( 'Product description (WYSIWYG rich text content).', 'invento' ),
+                ],
+            ],
+        ];
+
+        echo '<p>' . esc_html__( 'Use these shortcodes in any page, post, or widget area to display Invento products.', 'invento' ) . '</p>';
+
+        echo '<div class="invento-settings-grid">';
+        foreach ( $shortcodes as $sc ) {
+            echo '<div class="invento-card">';
+            echo '<h3>' . esc_html( $sc['title'] ) . '</h3>';
+            echo '<div class="invento-card-fields">';
+
+            echo '<div class="invento-field"><label>' . esc_html__( 'Shortcode', 'invento' ) . '</label>';
+            echo '<pre class="invento-code-block"><code>' . esc_html( $sc['shortcode'] ) . '</code></pre></div>';
+
+            echo '<div class="invento-field"><label>' . esc_html__( 'Description', 'invento' ) . '</label>';
+            echo '<p style="margin:0">' . esc_html( $sc['description'] ) . '</p></div>';
+
+            echo '<div class="invento-field"><label>' . esc_html__( 'Attributes', 'invento' ) . '</label>';
+            echo '<table class="widefat striped" style="border-radius:8px;overflow:hidden"><thead><tr>';
+            echo '<th>' . esc_html__( 'Attribute', 'invento' ) . '</th>';
+            echo '<th>' . esc_html__( 'Description', 'invento' ) . '</th>';
+            echo '</tr></thead><tbody>';
+            foreach ( $sc['attributes'] as $attr_name => $attr_desc ) {
+                echo '<tr><td><code>' . esc_html( $attr_name ) . '</code></td>';
+                echo '<td>' . esc_html( $attr_desc ) . '</td></tr>';
+            }
+            echo '</tbody></table></div>';
+
+            if ( ! empty( $sc['field_values'] ) ) {
+                echo '<div class="invento-field"><label>' . esc_html__( 'Accepted Field Values', 'invento' ) . '</label>';
+                echo '<table class="widefat striped" style="border-radius:8px;overflow:hidden"><thead><tr>';
+                echo '<th>' . esc_html__( 'Field Name', 'invento' ) . '</th>';
+                echo '<th>' . esc_html__( 'Output', 'invento' ) . '</th>';
+                echo '</tr></thead><tbody>';
+                foreach ( $sc['field_values'] as $fv_name => $fv_desc ) {
+                    echo '<tr><td><code>' . esc_html( $fv_name ) . '</code></td>';
+                    echo '<td>' . esc_html( $fv_desc ) . '</td></tr>';
+                }
+                echo '</tbody></table></div>';
+            }
+
+            echo '<div class="invento-field"><label>' . esc_html__( 'Examples', 'invento' ) . '</label>';
+            echo '<pre class="invento-code-block"><code>' . esc_html( implode( "\n", $sc['examples'] ) ) . '</code></pre></div>';
+
+            echo '</div>';
+            echo '</div>';
+        }
+        echo '</div>';
+    }
+
+    public function render_enable_variations_field(): void {
+        $settings = get_option( 'invento_settings', [] );
+        $value    = isset( $settings['enable_variations'] ) ? $settings['enable_variations'] : '1';
+        echo '<label><input type="checkbox" name="invento_settings[enable_variations]" value="1" ' . checked( $value, '1', false ) . ' /> '
+            . esc_html__( 'Show product variations on the frontend', 'invento' ) . '</label>';
     }
 
     public function render_quote_url_field(): void {
@@ -589,5 +937,54 @@ class Settings_Page implements Service_Interface {
         $settings = get_option( 'invento_settings', [] );
         $value    = isset( $settings['products_per_page'] ) ? (int) $settings['products_per_page'] : 12;
         echo '<input type="number" min="1" class="small-text" name="invento_settings[products_per_page]" value="' . esc_attr( (string) $value ) . '" />';
+    }
+
+    public function render_quote_form_page(): void {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            return;
+        }
+
+        $settings = Quote_Form::get_form_settings();
+
+        echo '<div class="wrap invento-settings">';
+        echo '<h1>' . esc_html__( 'Quote Form', 'invento' ) . '</h1>';
+
+        if ( ! shortcode_exists( 'fluentform' ) ) {
+            echo '<div class="notice notice-warning"><p>' . esc_html__( 'Fluent Forms plugin is required for the quote form popup. Please install and activate it.', 'invento' ) . '</p></div>';
+        }
+
+        echo '<form method="post" action="options.php">';
+        settings_fields( 'invento_quote_form_group' );
+
+        echo '<table class="form-table"><tbody>';
+        echo '<tr><th>' . esc_html__( 'Fluent Form ID', 'invento' ) . '</th>';
+        echo '<td><input type="number" min="0" class="small-text" name="invento_quote_form_settings[fluent_form_id]" value="' . esc_attr( $settings['fluent_form_id'] ) . '" />';
+        echo '<p class="description">' . esc_html__( 'Enter the ID of the Fluent Form to display in the quote popup. Set to 0 to disable.', 'invento' ) . '</p></td></tr>';
+        echo '<tr><th>' . esc_html__( 'Popup Title', 'invento' ) . '</th>';
+        echo '<td><input type="text" class="regular-text" name="invento_quote_form_settings[form_title]" value="' . esc_attr( $settings['form_title'] ) . '" /></td></tr>';
+        echo '<tr><th>' . esc_html__( 'Product Field Name', 'invento' ) . '</th>';
+        echo '<td><input type="text" class="regular-text" name="invento_quote_form_settings[field_name_product]" value="' . esc_attr( $settings['field_name_product'] ) . '" />';
+        echo '<p class="description">' . esc_html__( 'The data-name of the Fluent Form field to auto-populate with the product (e.g. interested_product).', 'invento' ) . '</p></td></tr>';
+        echo '<tr><th>' . esc_html__( 'Quantity Field Name', 'invento' ) . '</th>';
+        echo '<td><input type="text" class="regular-text" name="invento_quote_form_settings[field_name_quantity]" value="' . esc_attr( $settings['field_name_quantity'] ) . '" />';
+        echo '<p class="description">' . esc_html__( 'The data-name of the Fluent Form field to auto-populate with the quantity (e.g. numeric_field).', 'invento' ) . '</p></td></tr>';
+        echo '</tbody></table>';
+
+        submit_button();
+        echo '</form>';
+        echo '</div>';
+    }
+
+    public function sanitize_quote_form_settings( $value ): array {
+        if ( ! is_array( $value ) ) {
+            return [];
+        }
+
+        return [
+            'fluent_form_id'       => isset( $value['fluent_form_id'] ) ? absint( $value['fluent_form_id'] ) : 0,
+            'form_title'           => isset( $value['form_title'] ) ? sanitize_text_field( $value['form_title'] ) : __( 'Request a Quote', 'invento' ),
+            'field_name_product'   => isset( $value['field_name_product'] ) ? sanitize_key( $value['field_name_product'] ) : 'interested_product',
+            'field_name_quantity'  => isset( $value['field_name_quantity'] ) ? sanitize_key( $value['field_name_quantity'] ) : 'numeric_field',
+        ];
     }
 }

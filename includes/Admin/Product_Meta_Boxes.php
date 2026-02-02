@@ -30,19 +30,32 @@ class Product_Meta_Boxes implements Service_Interface {
             'default'
         );
 
+        $settings = get_option( 'invento_settings', [] );
+        $variations_enabled = isset( $settings['enable_variations'] ) ? $settings['enable_variations'] : '1';
+        if ( '1' === $variations_enabled ) {
+            add_meta_box(
+                'invento-product-variations',
+                __( 'Variations', 'invento' ),
+                [ $this, 'render_variations' ],
+                Product_Post_Type::POST_TYPE,
+                'normal',
+                'default'
+            );
+        }
+
         add_meta_box(
-            'invento-product-variations',
-            __( 'Variations', 'invento' ),
-            [ $this, 'render_variations' ],
+            'invento-product-specs',
+            __( 'Specs & Features', 'invento' ),
+            [ $this, 'render_specs_features' ],
             Product_Post_Type::POST_TYPE,
             'normal',
             'default'
         );
 
         add_meta_box(
-            'invento-product-specs',
-            __( 'Specs & Features', 'invento' ),
-            [ $this, 'render_specs_features' ],
+            'invento-product-description',
+            __( 'Product Description', 'invento' ),
+            [ $this, 'render_description' ],
             Product_Post_Type::POST_TYPE,
             'normal',
             'default'
@@ -164,7 +177,13 @@ class Product_Meta_Boxes implements Service_Interface {
 
         echo '<script type="text/template" id="invento-icon-text-template">';
         echo '<div class="invento-repeater-row">';
-        echo '<p><label>' . esc_html__( 'Icon Class', 'invento' ) . '</label> <input type="text" class="widefat" data-field="icon_type" /></p>';
+        echo '<p><label>' . esc_html__( 'Icon Image', 'invento' ) . '</label></p>';
+        echo '<div class="invento-icon-upload">';
+        echo '<input type="hidden" data-field="icon_type" />';
+        echo '<img class="invento-icon-preview" src="" alt="" style="max-width:48px;max-height:48px;display:none;" />';
+        echo '<button type="button" class="button invento-icon-select">' . esc_html__( 'Select Icon', 'invento' ) . '</button> ';
+        echo '<button type="button" class="button-link invento-icon-remove" style="display:none;color:#b32d2e;">' . esc_html__( 'Remove Icon', 'invento' ) . '</button>';
+        echo '</div>';
         echo '<p><label>' . esc_html__( 'Title', 'invento' ) . '</label> <input type="text" class="widefat" data-field="title" /></p>';
         echo '<p><label>' . esc_html__( 'Description', 'invento' ) . '</label> <textarea class="widefat" rows="3" data-field="description"></textarea></p>';
         echo '<button type="button" class="button-link invento-repeater-remove">' . esc_html__( 'Remove', 'invento' ) . '</button>';
@@ -186,6 +205,16 @@ class Product_Meta_Boxes implements Service_Interface {
         echo '<button type="button" class="button-link invento-repeater-remove">' . esc_html__( 'Remove', 'invento' ) . '</button>';
         echo '</div>';
         echo '</script>';
+    }
+
+    public function render_description( \WP_Post $post ): void {
+        $content = get_post_meta( $post->ID, '_invento_description', true );
+        wp_editor( (string) $content, 'invento_description', [
+            'textarea_name' => 'invento_description',
+            'textarea_rows' => 10,
+            'media_buttons' => true,
+            'teeny'         => false,
+        ] );
     }
 
     public function render_quote( \WP_Post $post ): void {
@@ -260,6 +289,9 @@ class Product_Meta_Boxes implements Service_Interface {
 
         $quote_url = isset( $_POST['invento_quote_button_url'] ) ? esc_url_raw( wp_unslash( $_POST['invento_quote_button_url'] ) ) : '';
         update_post_meta( $post_id, '_invento_quote_button_url', $quote_url );
+
+        $description = isset( $_POST['invento_description'] ) ? wp_kses_post( wp_unslash( $_POST['invento_description'] ) ) : '';
+        update_post_meta( $post_id, '_invento_description', $description );
 
         $video_type = isset( $_POST['invento_featured_video_type'] ) ? sanitize_key( wp_unslash( $_POST['invento_featured_video_type'] ) ) : 'none';
         if ( ! in_array( $video_type, [ 'none', 'self_hosted', 'youtube', 'vimeo', 'other' ], true ) ) {

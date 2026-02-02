@@ -58,17 +58,7 @@ class Assets implements Service_Interface {
     }
 
     public function enqueue_frontend(): void {
-        $should_load = is_singular( 'invento_product' ) || is_post_type_archive( 'invento_product' );
-
-        if ( ! $should_load ) {
-            $post_id = get_queried_object_id();
-            if ( $post_id ) {
-                $content = get_post_field( 'post_content', $post_id );
-                $should_load = has_shortcode( $content, 'invento_catalog' ) || has_shortcode( $content, 'invento_product' );
-            }
-        }
-
-        if ( ! $should_load ) {
+        if ( is_admin() ) {
             return;
         }
 
@@ -149,6 +139,17 @@ class Assets implements Service_Interface {
             '--invento-grid-thumb-height'    => $styles['grid_thumb_height'],
             '--invento-grid-card-padding'    => $styles['grid_card_padding'],
             '--invento-grid-section-gap'     => $styles['grid_section_gap'],
+            '--invento-popup-max-width'      => $styles['popup_max_width'],
+            '--invento-popup-bg'             => $styles['popup_bg'],
+            '--invento-popup-radius'         => $styles['popup_radius'],
+            '--invento-popup-padding'        => $styles['popup_padding'],
+            '--invento-popup-border'         => $styles['popup_border'],
+            '--invento-popup-overlay-bg'     => $styles['popup_overlay_bg'],
+            '--invento-popup-title-size'     => $styles['popup_title_size'],
+            '--invento-popup-title-weight'   => $styles['popup_title_weight'],
+            '--invento-popup-title-color'    => $styles['popup_title_color'],
+            '--invento-popup-close-size'     => $styles['popup_close_size'],
+            '--invento-popup-close-color'    => $styles['popup_close_color'],
         ];
 
         $lines = [];

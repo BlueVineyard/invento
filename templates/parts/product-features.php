@@ -32,7 +32,9 @@ $type = isset( $type ) ? $type : 'features';
                 ?>
                 <div class="invento-feature-item">
                     <?php if ( $icon && 'icon_text' === $type ) : ?>
-                        <?php if ( false !== strpos( $icon, '<' ) ) : ?>
+                        <?php if ( is_numeric( $icon ) ) : ?>
+                            <span class="invento-feature-icon"><?php echo wp_get_attachment_image( (int) $icon, 'thumbnail', false, [ 'class' => 'invento-spec-icon' ] ); ?></span>
+                        <?php elseif ( false !== strpos( $icon, '<' ) ) : ?>
                             <span class="invento-feature-icon"><?php echo wp_kses( $icon, Invento\Helpers\Sanitization::allowed_svg_html() ); ?></span>
                         <?php else : ?>
                             <span class="invento-feature-icon <?php echo esc_attr( $icon ); ?>"></span>

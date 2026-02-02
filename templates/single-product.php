@@ -133,7 +133,9 @@ if ( ! $from_shortcode ) {
         };
 
         $rendered['variations'] = function () use ( $variations ) {
-            if ( empty( $variations ) ) {
+            $invento_settings = get_option( 'invento_settings', [] );
+            $variations_enabled = isset( $invento_settings['enable_variations'] ) ? $invento_settings['enable_variations'] : '1';
+            if ( '1' !== $variations_enabled || empty( $variations ) ) {
                 return;
             }
             echo '<section class="invento-variations">';
@@ -168,6 +170,15 @@ if ( ! $from_shortcode ) {
         $rendered['specs'] = function () use ( $icon_rows ) {
             if ( ! empty( $icon_rows ) ) {
                 Invento\Helpers\View::render( __DIR__ . '/parts/product-features.php', [ 'rows' => $icon_rows, 'type' => 'icon_text' ] );
+            }
+        };
+
+        $rendered['description'] = function () use ( $post_id ) {
+            $description = get_post_meta( $post_id, '_invento_description', true );
+            if ( $description && '' !== trim( $description ) ) {
+                echo '<section class="invento-product-description">';
+                echo wp_kses_post( wpautop( $description ) );
+                echo '</section>';
             }
         };
 
