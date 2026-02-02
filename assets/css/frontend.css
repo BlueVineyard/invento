@@ -473,6 +473,17 @@
   border: 1px solid var(--invento-qty-border, #bfbfbf);
 }
 
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+  margin: 0;
+}
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
 .invento-qty-btn {
   width: var(--invento-qty-size, 43px);
   height: var(--invento-qty-size, 43px);
