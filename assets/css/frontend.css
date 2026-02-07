@@ -1,9 +1,17 @@
+[class*="invento-"] {
+  font-family: var(--primary-font);
+}
+
+[class*="invento-"] a {
+  text-decoration: none;
+}
+
 .invento-catalog-grid,
 .invento-archive-grid {
   display: grid;
   gap: var(--invento-grid-gap, 24px);
   grid-template-columns: repeat(
-    auto-fit,
+    auto-fill,
     minmax(var(--invento-grid-columns-min, 240px), 1fr)
   );
 }
@@ -13,14 +21,21 @@
   border-radius: var(--invento-grid-card-radius, 0px);
   padding: var(--invento-grid-card-padding, 16px);
   background: var(--invento-grid-card-bg, #ffffff);
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: var(--invento-grid-section-gap, 10px);
+  max-width: var(--invento-grid-columns-min, 240px);
 }
 
 .invento-product-card h3 {
   margin: 0;
   font-size: var(--invento-grid-title-size, 18px);
   color: var(--invento-grid-title-color, #121212);
+  text-align: left;
+}
+
+.invento-card-thumb {
+  overflow: hidden;
 }
 
 .invento-card-thumb img {
@@ -29,12 +44,14 @@
   display: block;
   border-radius: var(--invento-grid-thumb-radius, 0px);
   object-fit: cover;
+  transition: opacity 0.3s ease;
 }
 
 .invento-card-excerpt {
   font-size: var(--invento-grid-excerpt-size, 14px);
   color: var(--invento-grid-excerpt-color, #535353);
   margin: 0;
+  text-align: left;
 }
 
 .invento-quote-button {
@@ -647,4 +664,123 @@ input[type="number"]::-webkit-outer-spin-button {
   .invento-product-layout {
     grid-template-columns: 1fr;
   }
+}
+
+/* Category filter pills */
+.invento-filter-pills {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 32px;
+  margin-bottom: 62px;
+}
+
+.invento-filter-pill {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 0;
+  border: 0px solid var(--invento-grid-card-border, #e2e2e2);
+  background: transparent;
+  font-family: var(--primary-font);
+  font-weight: 500;
+  font-size: 16px;
+  line-height: 150%;
+  text-align: center;
+  text-transform: capitalize;
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    color 0.2s;
+}
+
+.invento-filter-pill-img {
+  width: 63px;
+  height: 63px;
+  border-radius: 50%;
+  object-fit: contain;
+  border: 1px solid #d4d4d4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.invento-filter-pill:hover {
+  background: var(--invento-grid-card-border, #e2e2e2);
+}
+
+.invento-filter-pill.is-active {
+  color: #334fb4;
+}
+
+.invento-filter-pill.is-active .invento-filter-pill-img {
+  background-color: #334fb4;
+}
+
+.invento-filter-grid {
+  transition: opacity 0.2s;
+}
+
+/* Pricing block */
+.invento-price-block {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.invento-price-sale {
+  color: var(--invento-price-color, #ff0000);
+  font-weight: 600;
+  font-size: 20px;
+  line-height: 140%;
+}
+
+.invento-price-regular.invento-price-strikethrough {
+  font-size: 14px;
+  font-weight: 400;
+  color: #6e7589;
+  text-decoration: line-through;
+}
+
+.invento-price-discount {
+  display: inline-block;
+  border-radius: 2.5px;
+  padding-top: 3.75px;
+  padding-right: 6.25px;
+  padding-bottom: 3.75px;
+  padding-left: 6.25px;
+  font-size: 8.75px;
+  font-weight: 500;
+  color: var(--invento-price-color, #ff0000);
+  background: var(--invento-price-discount-bg, #fde9eb);
+}
+
+/* Specifications table */
+.invento-specs-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.invento-specs-table th,
+.invento-specs-table td {
+  padding: 20px 24px;
+  text-align: left;
+  border: 1px solid #adadad;
+  width: 25%;
+  color: #535353;
+  font-family: var(--primary-font);
+  font-size: 20px;
+  line-height: 156%;
+}
+
+.invento-specs-table th {
+  font-weight: 600;
+  background: #f5f5f5;
+}
+
+.invento-specs-table td {
+  font-weight: 400;
 }

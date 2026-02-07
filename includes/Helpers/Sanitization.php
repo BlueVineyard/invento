@@ -21,6 +21,31 @@ class Sanitization {
         return wp_json_encode( array_values( $value ) );
     }
 
+    public static function sanitize_gallery_ids( $value ): string {
+        if ( empty( $value ) ) {
+            return wp_json_encode( [] );
+        }
+
+        if ( is_string( $value ) ) {
+            $decoded = json_decode( wp_unslash( $value ), true );
+            $value = is_array( $decoded ) ? $decoded : [];
+        }
+
+        if ( ! is_array( $value ) ) {
+            $value = [];
+        }
+
+        $ids = [];
+        foreach ( $value as $id ) {
+            $id = absint( $id );
+            if ( $id > 0 ) {
+                $ids[] = $id;
+            }
+        }
+
+        return wp_json_encode( array_values( $ids ) );
+    }
+
     public static function sanitize_icon_string( string $icon ): string {
         $icon = wp_strip_all_tags( $icon );
         return sanitize_text_field( $icon );
@@ -84,6 +109,42 @@ class Sanitization {
             'polyline'=> [ 'points' => true, 'stroke' => true, 'fill' => true ],
             'polygon' => [ 'points' => true, 'stroke' => true, 'fill' => true ],
         ];
+    }
+
+    public static function sanitize_specs_array( $value ): string {
+        if ( empty( $value ) ) {
+            return wp_json_encode( [] );
+        }
+
+        if ( is_string( $value ) ) {
+            $decoded = json_decode( wp_unslash( $value ), true );
+            $value = is_array( $decoded ) ? $decoded : [];
+        }
+
+        if ( ! is_array( $value ) ) {
+            $value = [];
+        }
+
+        $allowed = [
+            'br'     => [],
+            'strong' => [],
+            'em'     => [],
+            'sub'    => [],
+            'sup'    => [],
+        ];
+
+        $rows = [];
+        foreach ( $value as $row ) {
+            if ( ! is_array( $row ) ) {
+                continue;
+            }
+            $rows[] = [
+                'label' => isset( $row['label'] ) ? wp_kses( $row['label'], $allowed ) : '',
+                'value' => isset( $row['value'] ) ? wp_kses( $row['value'], $allowed ) : '',
+            ];
+        }
+
+        return wp_json_encode( array_values( $rows ) );
     }
 
     public static function sanitize_text_field_deep( $data ) {

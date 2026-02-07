@@ -21,8 +21,9 @@ class Assets implements Service_Interface {
 
         $is_product_screen = ( 'invento_product' === $screen->post_type );
         $is_settings = ( 'toplevel_page_invento-settings' === $screen->id || 0 === strpos( $screen->id, 'invento_page_' ) );
+        $is_taxonomy = ( 'edit-invento_product_category' === $screen->id );
 
-        if ( ! $is_product_screen && ! $is_settings ) {
+        if ( ! $is_product_screen && ! $is_settings && ! $is_taxonomy ) {
             return;
         }
 
@@ -78,6 +79,11 @@ class Assets implements Service_Interface {
             INVENTO_VERSION,
             true
         );
+
+        wp_localize_script( 'invento-frontend-js', 'InventoFront', [
+            'ajax_url' => admin_url( 'admin-ajax.php' ),
+            'nonce'    => wp_create_nonce( 'invento_filter_nonce' ),
+        ] );
 
         $css = $this->get_style_variables();
         if ( $css ) {

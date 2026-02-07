@@ -83,8 +83,25 @@ class Product_Meta_Boxes implements Service_Interface {
         $video_url         = get_post_meta( $post->ID, '_invento_featured_video_url', true );
         $video_type        = $video_type ? $video_type : 'none';
 
+        $sku = get_post_meta( $post->ID, '_invento_sku', true );
+
+        echo '<p><label for="invento_sku"><strong>' . esc_html__( 'SKU', 'invento' ) . '</strong></label></p>';
+        echo '<input type="text" id="invento_sku" name="invento_sku" class="widefat" value="' . esc_attr( $sku ) . '" />';
+        echo '<p class="description">' . esc_html__( 'Override the product title on cards. Leave empty to use the default title.', 'invento' ) . '</p>';
+
         echo '<p><label for="invento_short_description"><strong>' . esc_html__( 'Short Description', 'invento' ) . '</strong></label></p>';
         echo '<textarea id="invento_short_description" name="invento_short_description" rows="4" class="widefat">' . esc_textarea( $short_description ) . '</textarea>';
+
+        echo '<hr />';
+        $regular_price    = get_post_meta( $post->ID, '_invento_regular_price', true );
+        $sale_price       = get_post_meta( $post->ID, '_invento_sale_price', true );
+
+        echo '<p><strong>' . esc_html__( 'Pricing', 'invento' ) . '</strong></p>';
+        echo '<p><label for="invento_regular_price">' . esc_html__( 'Regular Price', 'invento' ) . '</label> ';
+        echo '<input type="text" id="invento_regular_price" name="invento_regular_price" class="regular-text" value="' . esc_attr( $regular_price ) . '" /></p>';
+
+        echo '<p><label for="invento_sale_price">' . esc_html__( 'Sale Price', 'invento' ) . '</label> ';
+        echo '<input type="text" id="invento_sale_price" name="invento_sale_price" class="regular-text" value="' . esc_attr( $sale_price ) . '" /></p>';
 
         echo '<hr />';
         echo '<p><strong>' . esc_html__( 'Stock Management', 'invento' ) . '</strong></p>';
@@ -191,6 +208,27 @@ class Product_Meta_Boxes implements Service_Interface {
         echo '</script>';
 
         echo '<hr />';
+        echo '<h4>' . esc_html__( 'Product Specifications', 'invento' ) . '</h4>';
+        $specifications = get_post_meta( $post->ID, '_invento_specifications', true );
+        if ( empty( $specifications ) ) {
+            $specifications = wp_json_encode( [] );
+        }
+
+        echo '<div class="invento-repeater" data-repeater="specifications">';
+        echo '<input type="hidden" name="invento_specifications" class="invento-repeater-input" value="' . esc_attr( $specifications ) . '" />';
+        echo '<div class="invento-repeater-rows"></div>';
+        echo '<button type="button" class="button invento-repeater-add" data-template="specification">' . esc_html__( 'Add Row', 'invento' ) . '</button>';
+        echo '</div>';
+
+        echo '<script type="text/template" id="invento-specification-template">';
+        echo '<div class="invento-repeater-row invento-spec-row">';
+        echo '<p><label>' . esc_html__( 'Label', 'invento' ) . '</label> <input type="text" class="widefat" data-field="label" /></p>';
+        echo '<p><label>' . esc_html__( 'Value', 'invento' ) . '</label> <input type="text" class="widefat" data-field="value" /></p>';
+        echo '<button type="button" class="button-link invento-repeater-remove">' . esc_html__( 'Remove', 'invento' ) . '</button>';
+        echo '</div>';
+        echo '</script>';
+
+        echo '<hr />';
         echo '<h4>' . esc_html__( 'Main Features', 'invento' ) . '</h4>';
         echo '<div class="invento-repeater" data-repeater="main_features">';
         echo '<input type="hidden" name="invento_main_features" class="invento-repeater-input" value="' . esc_attr( $features ) . '" />';
@@ -199,9 +237,8 @@ class Product_Meta_Boxes implements Service_Interface {
         echo '</div>';
 
         echo '<script type="text/template" id="invento-feature-template">';
-        echo '<div class="invento-repeater-row">';
-        echo '<p><label>' . esc_html__( 'Title', 'invento' ) . '</label> <input type="text" class="widefat" data-field="title" /></p>';
-        echo '<p><label>' . esc_html__( 'Description', 'invento' ) . '</label> <textarea class="widefat" rows="3" data-field="description"></textarea></p>';
+        echo '<div class="invento-repeater-row invento-feature-row">';
+        echo '<input type="text" class="widefat" data-field="title" placeholder="' . esc_attr__( 'Feature text', 'invento' ) . '" />';
         echo '<button type="button" class="button-link invento-repeater-remove">' . esc_html__( 'Remove', 'invento' ) . '</button>';
         echo '</div>';
         echo '</script>';
@@ -251,8 +288,17 @@ class Product_Meta_Boxes implements Service_Interface {
             return;
         }
 
+        $sku = isset( $_POST['invento_sku'] ) ? sanitize_text_field( wp_unslash( $_POST['invento_sku'] ) ) : '';
+        update_post_meta( $post_id, '_invento_sku', $sku );
+
         $short_description = isset( $_POST['invento_short_description'] ) ? sanitize_textarea_field( wp_unslash( $_POST['invento_short_description'] ) ) : '';
         update_post_meta( $post_id, '_invento_short_description', $short_description );
+
+        $regular_price = isset( $_POST['invento_regular_price'] ) ? sanitize_text_field( wp_unslash( $_POST['invento_regular_price'] ) ) : '';
+        update_post_meta( $post_id, '_invento_regular_price', $regular_price );
+
+        $sale_price = isset( $_POST['invento_sale_price'] ) ? sanitize_text_field( wp_unslash( $_POST['invento_sale_price'] ) ) : '';
+        update_post_meta( $post_id, '_invento_sale_price', $sale_price );
 
         $stock_mode = isset( $_POST['invento_stock_mode'] ) ? sanitize_key( wp_unslash( $_POST['invento_stock_mode'] ) ) : 'none';
         if ( ! in_array( $stock_mode, [ 'none', 'simple', 'label' ], true ) ) {
@@ -266,7 +312,7 @@ class Product_Meta_Boxes implements Service_Interface {
         $stock_label = isset( $_POST['invento_stock_label'] ) ? sanitize_text_field( wp_unslash( $_POST['invento_stock_label'] ) ) : '';
         update_post_meta( $post_id, '_invento_stock_label', $stock_label );
 
-        $gallery = isset( $_POST['invento_gallery_ids'] ) ? Sanitization::sanitize_json_array( $_POST['invento_gallery_ids'] ) : wp_json_encode( [] );
+        $gallery = isset( $_POST['invento_gallery_ids'] ) ? Sanitization::sanitize_gallery_ids( $_POST['invento_gallery_ids'] ) : wp_json_encode( [] );
         update_post_meta( $post_id, '_invento_gallery_ids', $gallery );
 
         $variations = isset( $_POST['invento_variations'] ) ? Sanitization::sanitize_json_array( $_POST['invento_variations'] ) : wp_json_encode( [] );
@@ -277,6 +323,9 @@ class Product_Meta_Boxes implements Service_Interface {
 
         $features = isset( $_POST['invento_main_features'] ) ? Sanitization::sanitize_json_array( $_POST['invento_main_features'] ) : wp_json_encode( [] );
         update_post_meta( $post_id, '_invento_main_features', $features );
+
+        $specifications = isset( $_POST['invento_specifications'] ) ? Sanitization::sanitize_specs_array( $_POST['invento_specifications'] ) : wp_json_encode( [] );
+        update_post_meta( $post_id, '_invento_specifications', $specifications );
 
         $quote_mode = isset( $_POST['invento_quote_button_mode'] ) ? sanitize_key( wp_unslash( $_POST['invento_quote_button_mode'] ) ) : 'global';
         if ( ! in_array( $quote_mode, [ 'global', 'product', 'disabled' ], true ) ) {

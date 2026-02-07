@@ -18,6 +18,7 @@
     if (type === 'variations') templateId = '#invento-variation-template';
     if (type === 'icon_text') templateId = '#invento-icon-text-template';
     if (type === 'main_features') templateId = '#invento-feature-template';
+    if (type === 'specifications') templateId = '#invento-specification-template';
 
     var template = $(templateId).html() || '';
     var $rowsContainer = $wrapper.find('.invento-repeater-rows');
@@ -27,6 +28,8 @@
       var $row = $(template);
       $row.find('[data-field="name"]').val(row.name || '');
       $row.find('[data-field="options"]').val(Array.isArray(row.options) ? row.options.join(', ') : (row.options || ''));
+      $row.find('[data-field="label"]').val(row.label || '');
+      $row.find('[data-field="value"]').val(row.value || '');
       var iconVal = row.icon_type || '';
       $row.find('[data-field="icon_type"]').val(iconVal);
       if (iconVal && !isNaN(iconVal) && parseInt(iconVal) > 0) {
@@ -81,6 +84,11 @@
         data.description = $row.find('[data-field="description"]').val() || '';
       }
 
+      if (type === 'specifications') {
+        data.label = $row.find('[data-field="label"]').val() || '';
+        data.value = $row.find('[data-field="value"]').val() || '';
+      }
+
       rows.push(data);
     });
 
@@ -97,6 +105,7 @@
       if (type === 'variations') templateId = '#invento-variation-template';
       if (type === 'icon_text') templateId = '#invento-icon-text-template';
       if (type === 'main_features') templateId = '#invento-feature-template';
+      if (type === 'specifications') templateId = '#invento-specification-template';
 
       var template = $(templateId).html() || '';
       $wrapper.find('.invento-repeater-rows').append($(template));
@@ -153,13 +162,16 @@
     var $preview = $('.invento-gallery-preview');
     $preview.empty();
 
+    if (!ids.length) return;
+
     ids.forEach(function (id) {
       var attachment = wp.media.attachment(id);
-      attachment.fetch();
-      attachment.on('change', function () {
-        var url = attachment.get('url');
+      attachment.fetch().then(function () {
+        var url = attachment.get('sizes') && attachment.get('sizes').thumbnail
+          ? attachment.get('sizes').thumbnail.url
+          : attachment.get('url');
         if (url) {
-          $preview.append('<img src="' + url + '" alt="" />');
+          $preview.append('<img src="' + url + '" alt="" data-id="' + id + '" />');
         }
       });
     });
@@ -272,5 +284,27 @@
     bindOrderList($('.invento-template-order-list').first(), $('.invento-template-order-input').first());
     bindOrderList($('.invento-grid-order-list'), $('.invento-grid-order-input'));
 
+  });
+
+  // Term image uploader
+  $(document).on('click', '.invento-term-image-upload', function (e) {
+    e.preventDefault();
+    var $wrap = $(this).closest('.invento-term-image-wrap');
+    var frame = wp.media({ multiple: false, library: { type: 'image' } });
+    frame.on('select', function () {
+      var attachment = frame.state().get('selection').first().toJSON();
+      $wrap.find('.invento-term-image-id').val(attachment.id);
+      $wrap.find('.invento-term-image-preview').html('<img src="' + (attachment.sizes && attachment.sizes.thumbnail ? attachment.sizes.thumbnail.url : attachment.url) + '" alt="" />');
+      $wrap.find('.invento-term-image-remove').show();
+    });
+    frame.open();
+  });
+
+  $(document).on('click', '.invento-term-image-remove', function (e) {
+    e.preventDefault();
+    var $wrap = $(this).closest('.invento-term-image-wrap');
+    $wrap.find('.invento-term-image-id').val('');
+    $wrap.find('.invento-term-image-preview').empty();
+    $(this).hide();
   });
 })(jQuery);

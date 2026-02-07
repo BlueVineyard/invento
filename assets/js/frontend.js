@@ -319,6 +319,89 @@
     }
   });
 
+  // Category filter pills
+  $(document).on("click", ".invento-filter-pill", function () {
+    var $pill = $(this);
+    var $wrap = $pill.closest(".invento-catalog-filter-wrap");
+    var $grid = $wrap.find(".invento-filter-grid");
+
+    $wrap.find(".invento-filter-pill").removeClass("is-active");
+    $pill.addClass("is-active");
+
+    $grid.css("opacity", "0.5");
+
+    $.post(InventoFront.ajax_url, {
+      action: "invento_filter_products",
+      nonce: InventoFront.nonce,
+      category: $pill.data("category") || "",
+      per_page: $wrap.data("per-page") || 12,
+      layout: $wrap.data("layout") || "grid",
+    })
+      .done(function (res) {
+        if (res.success && res.data && res.data.html) {
+          $grid.html(res.data.html);
+        }
+      })
+      .always(function () {
+        $grid.css("opacity", "1");
+      });
+  });
+
+  // Card thumb gallery shuffle on hover
+  $(document).on("mouseenter", ".invento-card-thumb[data-gallery]", function () {
+    var $thumb = $(this);
+    if ($thumb.data("hovering")) return;
+
+    var images = $thumb.data("gallery");
+    // Handle both parsed array and raw string
+    if (typeof images === "string") {
+      try {
+        images = JSON.parse(images);
+      } catch (e) {
+        return;
+      }
+    }
+    if (!images || images.length < 2) return;
+
+    var $img = $thumb.find("img").first();
+    var originalSrc = $img.attr("src");
+    var originalSrcset = $img.attr("srcset") || "";
+    var idx = 0;
+
+    $thumb.data("hovering", true);
+    $thumb.data("original-src", originalSrc);
+    $thumb.data("original-srcset", originalSrcset);
+
+    // Remove srcset so browser uses src directly
+    $img.removeAttr("srcset");
+
+    var interval = setInterval(function () {
+      idx = (idx + 1) % images.length;
+      $img.animate({ opacity: 0 }, 200, function () {
+        $img.attr("src", images[idx]);
+        $img.animate({ opacity: 1 }, 200);
+      });
+    }, 1200);
+
+    $thumb.data("interval", interval);
+  });
+
+  $(document).on("mouseleave", ".invento-card-thumb[data-gallery]", function () {
+    var $thumb = $(this);
+    clearInterval($thumb.data("interval"));
+    $thumb.data("hovering", false);
+
+    var $img = $thumb.find("img").first();
+    var originalSrc = $thumb.data("original-src");
+    var originalSrcset = $thumb.data("original-srcset");
+    if (originalSrc) {
+      $img.attr("src", originalSrc);
+    }
+    if (originalSrcset) {
+      $img.attr("srcset", originalSrcset);
+    }
+  });
+
   $(".invento-qty-control").each(function () {
     const $wrapper = $(this);
     const $input = $wrapper.find(".counter");

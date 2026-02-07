@@ -123,6 +123,22 @@ class Settings_Page implements Service_Interface {
             'invento-settings',
             'invento_general'
         );
+
+        add_settings_field(
+            'filter_all_image',
+            __( 'Filter "All" Image', 'invento' ),
+            [ $this, 'render_filter_all_image_field' ],
+            'invento-settings',
+            'invento_general'
+        );
+
+        add_settings_field(
+            'placeholder_image',
+            __( 'Placeholder Image', 'invento' ),
+            [ $this, 'render_placeholder_image_field' ],
+            'invento-settings',
+            'invento_general'
+        );
     }
 
     public function sanitize_settings( array $settings ): array {
@@ -132,6 +148,8 @@ class Settings_Page implements Service_Interface {
         $sanitized['catalog_layout']            = isset( $settings['catalog_layout'] ) && in_array( $settings['catalog_layout'], [ 'grid', 'list' ], true ) ? $settings['catalog_layout'] : 'grid';
         $sanitized['products_per_page']         = isset( $settings['products_per_page'] ) ? max( 1, absint( $settings['products_per_page'] ) ) : 12;
         $sanitized['enable_variations']         = ! empty( $settings['enable_variations'] ) ? '1' : '0';
+        $sanitized['filter_all_image_id']       = isset( $settings['filter_all_image_id'] ) ? absint( $settings['filter_all_image_id'] ) : 0;
+        $sanitized['placeholder_image_id']      = isset( $settings['placeholder_image_id'] ) ? absint( $settings['placeholder_image_id'] ) : 0;
 
         return $sanitized;
     }
@@ -192,6 +210,7 @@ class Settings_Page implements Service_Interface {
                 [ 'key' => 'thumb', 'enabled' => true ],
                 [ 'key' => 'title', 'enabled' => true ],
                 [ 'key' => 'excerpt', 'enabled' => true ],
+                [ 'key' => 'pricing', 'enabled' => true ],
                 [ 'key' => 'quantity', 'enabled' => true ],
                 [ 'key' => 'quote', 'enabled' => true ],
             ] ),
@@ -603,6 +622,7 @@ class Settings_Page implements Service_Interface {
             'thumb'    => __( 'Thumbnail', 'invento' ),
             'title'    => __( 'Title', 'invento' ),
             'excerpt'  => __( 'Short Description', 'invento' ),
+            'pricing'  => __( 'Pricing', 'invento' ),
             'quantity' => __( 'Quantity Selector', 'invento' ),
             'quote'    => __( 'Quote Button', 'invento' ),
         ];
@@ -770,6 +790,27 @@ if ( $description && \'\' !== trim( $description ) ) {
     echo wp_kses_post( wpautop( $description ) );
 }',
             ],
+            [
+                'title' => __( 'Regular Price', 'invento' ),
+                'key'   => '_invento_regular_price',
+                'type'  => 'string',
+                'code'  => '$regular_price = get_post_meta( get_the_ID(), \'_invento_regular_price\', true );
+echo esc_html( $regular_price );',
+            ],
+            [
+                'title' => __( 'Sale Price', 'invento' ),
+                'key'   => '_invento_sale_price',
+                'type'  => 'string',
+                'code'  => '$sale_price = get_post_meta( get_the_ID(), \'_invento_sale_price\', true );
+echo esc_html( $sale_price );',
+            ],
+            [
+                'title' => __( 'Discount Percentage', 'invento' ),
+                'key'   => '_invento_discount_percent',
+                'type'  => 'string',
+                'code'  => '$discount = get_post_meta( get_the_ID(), \'_invento_discount_percent\', true );
+echo esc_html( $discount );',
+            ],
         ];
 
         echo '<p>' . esc_html__( 'Use these snippets inside any WordPress loop (e.g. WP_Query, get_posts) to display product data. All snippets use get_the_ID() so they work in any query context.', 'invento' ) . '</p>';
@@ -810,6 +851,21 @@ if ( $description && \'\' !== trim( $description ) ) {
                 ],
             ],
             [
+                'title'       => __( 'Product Catalog with Category Filter', 'invento' ),
+                'shortcode'   => '[invento_catalog_filter]',
+                'description' => __( 'Displays category filter pills (with an "All" option) above a product grid. Clicking a pill filters the products via AJAX without reloading the page.', 'invento' ),
+                'attributes'  => [
+                    'layout'     => __( 'Display layout. Values: "grid" or "list". Default: value from General Settings.', 'invento' ),
+                    'per_page'   => __( 'Number of products to show. Default: value from General Settings.', 'invento' ),
+                    'hide_empty' => __( 'Hide categories that have no products. Values: "true" or "false". Default: "true".', 'invento' ),
+                ],
+                'examples'    => [
+                    '[invento_catalog_filter]',
+                    '[invento_catalog_filter per_page="8"]',
+                    '[invento_catalog_filter layout="list" hide_empty="false"]',
+                ],
+            ],
+            [
                 'title'       => __( 'Single Product', 'invento' ),
                 'shortcode'   => '[invento_product]',
                 'description' => __( 'Embeds a single product detail view anywhere on your site. Requires the product ID.', 'invento' ),
@@ -837,6 +893,9 @@ if ( $description && \'\' !== trim( $description ) ) {
                     '[invento_field field="gallery_first"]',
                     '[invento_field field="features" id="789"]',
                     '[invento_field field="description"]',
+                    '[invento_field field="regular_price"]',
+                    '[invento_field field="sale_price"]',
+                    '[invento_field field="discount_percent"]',
                 ],
                 'field_values' => [
                     'short_description' => __( 'Product short description text.', 'invento' ),
@@ -854,6 +913,9 @@ if ( $description && \'\' !== trim( $description ) ) {
                     'quote_label'       => __( 'Quote button label text.', 'invento' ),
                     'quote_url'         => __( 'Quote button URL.', 'invento' ),
                     'description'       => __( 'Product description (WYSIWYG rich text content).', 'invento' ),
+                    'regular_price'     => __( 'Regular price text.', 'invento' ),
+                    'sale_price'        => __( 'Sale price text.', 'invento' ),
+                    'discount_percent'  => __( 'Discount percentage text.', 'invento' ),
                 ],
             ],
         ];
@@ -937,6 +999,43 @@ if ( $description && \'\' !== trim( $description ) ) {
         $settings = get_option( 'invento_settings', [] );
         $value    = isset( $settings['products_per_page'] ) ? (int) $settings['products_per_page'] : 12;
         echo '<input type="number" min="1" class="small-text" name="invento_settings[products_per_page]" value="' . esc_attr( (string) $value ) . '" />';
+    }
+
+    public function render_filter_all_image_field(): void {
+        $settings = get_option( 'invento_settings', [] );
+        $image_id = isset( $settings['filter_all_image_id'] ) ? (int) $settings['filter_all_image_id'] : 0;
+        $image_url = $image_id ? wp_get_attachment_image_url( $image_id, 'thumbnail' ) : '';
+        ?>
+        <div class="invento-term-image-wrap">
+            <div class="invento-term-image-preview">
+                <?php if ( $image_url ) : ?>
+                    <img src="<?php echo esc_url( $image_url ); ?>" alt="" />
+                <?php endif; ?>
+            </div>
+            <input type="hidden" name="invento_settings[filter_all_image_id]" class="invento-term-image-id" value="<?php echo esc_attr( $image_id ); ?>" />
+            <button type="button" class="button invento-term-image-upload"><?php esc_html_e( 'Upload Image', 'invento' ); ?></button>
+            <button type="button" class="button invento-term-image-remove" <?php echo $image_id ? '' : 'style="display:none;"'; ?>><?php esc_html_e( 'Remove Image', 'invento' ); ?></button>
+        </div>
+        <?php
+    }
+
+    public function render_placeholder_image_field(): void {
+        $settings = get_option( 'invento_settings', [] );
+        $image_id = isset( $settings['placeholder_image_id'] ) ? (int) $settings['placeholder_image_id'] : 0;
+        $image_url = $image_id ? wp_get_attachment_image_url( $image_id, 'thumbnail' ) : '';
+        ?>
+        <div class="invento-term-image-wrap">
+            <div class="invento-term-image-preview">
+                <?php if ( $image_url ) : ?>
+                    <img src="<?php echo esc_url( $image_url ); ?>" alt="" />
+                <?php endif; ?>
+            </div>
+            <input type="hidden" name="invento_settings[placeholder_image_id]" class="invento-term-image-id" value="<?php echo esc_attr( $image_id ); ?>" />
+            <button type="button" class="button invento-term-image-upload"><?php esc_html_e( 'Upload Image', 'invento' ); ?></button>
+            <button type="button" class="button invento-term-image-remove" <?php echo $image_id ? '' : 'style="display:none;"'; ?>><?php esc_html_e( 'Remove Image', 'invento' ); ?></button>
+        </div>
+        <p class="description"><?php esc_html_e( 'Default image when no gallery or featured image is set.', 'invento' ); ?></p>
+        <?php
     }
 
     public function render_quote_form_page(): void {

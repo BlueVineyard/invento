@@ -19,16 +19,57 @@ if ( ! $short_description ) {
     $rendered = [];
 
     $rendered['thumb'] = function () use ( $post_id ) {
-        if ( has_post_thumbnail( $post_id ) ) {
-            echo '<a class="invento-product-link" href="' . esc_url( get_permalink( $post_id ) ) . '">';
-            echo '<div class="invento-card-thumb">' . get_the_post_thumbnail( $post_id, 'medium' ) . '</div>';
-            echo '</a>';
+        $gallery_ids = json_decode( (string) get_post_meta( $post_id, '_invento_gallery_ids', true ), true );
+        $gallery_ids = is_array( $gallery_ids ) ? $gallery_ids : [];
+
+        // Build gallery image URLs
+        $images = [];
+        foreach ( $gallery_ids as $att_id ) {
+            $url = wp_get_attachment_image_url( (int) $att_id, 'full' );
+            if ( $url ) {
+                $images[] = $url;
+            }
         }
+
+        // Fallback to featured image
+        if ( empty( $images ) && has_post_thumbnail( $post_id ) ) {
+            $featured_url = get_the_post_thumbnail_url( $post_id, 'full' );
+            if ( $featured_url ) {
+                $images[] = $featured_url;
+            }
+        }
+
+        // Fallback to placeholder
+        if ( empty( $images ) ) {
+            $settings = get_option( 'invento_settings', [] );
+            $placeholder_id = isset( $settings['placeholder_image_id'] ) ? (int) $settings['placeholder_image_id'] : 0;
+            if ( $placeholder_id ) {
+                $placeholder_url = wp_get_attachment_image_url( $placeholder_id, 'full' );
+                if ( $placeholder_url ) {
+                    $images[] = $placeholder_url;
+                }
+            }
+        }
+
+        if ( empty( $images ) ) {
+            return;
+        }
+
+        $permalink = esc_url( get_permalink( $post_id ) );
+        $data_attr = count( $images ) > 1 ? " data-gallery='" . wp_json_encode( $images ) . "'" : '';
+
+        echo '<a class="invento-product-link" href="' . $permalink . '">';
+        echo '<div class="invento-card-thumb"' . $data_attr . '>';
+        echo '<img src="' . esc_url( $images[0] ) . '" alt="' . esc_attr( get_the_title( $post_id ) ) . '" />';
+        echo '</div>';
+        echo '</a>';
     };
 
     $rendered['title'] = function () use ( $post_id ) {
+        $sku = get_post_meta( $post_id, '_invento_sku', true );
+        $title = ( $sku && '' !== trim( $sku ) ) ? $sku : get_the_title( $post_id );
         echo '<a class="invento-product-link" href="' . esc_url( get_permalink( $post_id ) ) . '">';
-        echo '<h3>' . esc_html( get_the_title( $post_id ) ) . '</h3>';
+        echo '<h3>' . esc_html( $title ) . '</h3>';
         echo '</a>';
     };
 
@@ -44,6 +85,10 @@ if ( ! $short_description ) {
         echo '<input type="number" class="invento-qty-input" min="1" value="1" />';
         echo '<button type="button" class="invento-qty-btn invento-qty-plus" aria-label="' . esc_attr__( 'Increase quantity', 'invento' ) . '">+</button>';
         echo '</div>';
+    };
+
+    $rendered['pricing'] = function () use ( $post_id ) {
+        echo Formatting::render_price_block( $post_id );
     };
 
     $rendered['quote'] = function () use ( $post_id ) {

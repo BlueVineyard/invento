@@ -4,6 +4,7 @@ namespace Invento\Core;
 use Invento\Admin\Admin_Columns;
 use Invento\Admin\Product_Meta_Boxes;
 use Invento\Admin\Settings_Page;
+use Invento\Admin\Taxonomy_Image;
 use Invento\Frontend\Frontend_Loader;
 use Invento\Frontend\Shortcodes;
 use Invento\PostTypes\Product_Post_Type;
@@ -39,6 +40,7 @@ class Plugin {
             new Product_Meta_Boxes(),
             new Settings_Page(),
             new Admin_Columns(),
+            new Taxonomy_Image(),
             new Frontend_Loader( $this->plugin_dir ),
             new Shortcodes( $this->plugin_dir ),
             new Quote_Form(),
