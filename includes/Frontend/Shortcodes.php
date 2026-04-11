@@ -15,6 +15,7 @@ class Shortcodes implements Service_Interface
     }
 
     protected static array $field_map = [
+        'sku'               => ['key' => '_invento_sku', 'type' => 'text'],
         'short_description' => ['key' => '_invento_short_description', 'type' => 'text'],
         'stock_mode'        => ['key' => '_invento_stock_mode', 'type' => 'text'],
         'stock_quantity'    => ['key' => '_invento_stock_quantity', 'type' => 'int'],
@@ -128,28 +129,62 @@ class Shortcodes implements Service_Interface
             $terms = [];
         }
 
+        // Check for URL parameter filter
+        $active_category = isset($_GET['product_category']) ? sanitize_text_field(wp_unslash($_GET['product_category'])) : '';
+
+        // Validate that the category slug actually exists
+        if ('' !== $active_category) {
+            $valid = false;
+            foreach ($terms as $term) {
+                if ($term->slug === $active_category) {
+                    $valid = true;
+                    break;
+                }
+            }
+            if (! $valid) {
+                $active_category = '';
+            }
+        }
+
         ob_start();
 
-        echo '<div class="invento-catalog-filter-wrap" data-layout="' . esc_attr($atts['layout']) . '" data-per-page="' . esc_attr($atts['per_page']) . '">';
+        echo '<div id="invento-catalog-filter" class="invento-catalog-filter-wrap" data-layout="' . esc_attr($atts['layout']) . '" data-per-page="' . esc_attr($atts['per_page']) . '">';
 
         // Pills
         echo '<div class="invento-filter-pills">';
         $all_image_id = isset($settings['filter_all_image_id']) ? (int) $settings['filter_all_image_id'] : 0;
         $all_image_url = $all_image_id ? wp_get_attachment_image_url($all_image_id, 'thumbnail') : '';
         $all_img_html = $all_image_url ? '<img src="' . esc_url($all_image_url) . '" alt="" class="invento-filter-pill-img" /> ' : '';
-        echo '<button type="button" class="invento-filter-pill is-active" data-category="">' . $all_img_html . '<span>' . esc_html__('All', 'invento') . '</span></button>';
+        $all_active = '' === $active_category ? ' is-active' : '';
+        echo '<button type="button" class="invento-filter-pill' . $all_active . '" data-category="">' . $all_img_html . '<span>' . esc_html__('All', 'invento') . '</span></button>';
         foreach ($terms as $term) {
             $term_img = \Invento\Admin\Taxonomy_Image::get_image_url($term->term_id, 'thumbnail');
             $img_html = $term_img ? '<img src="' . esc_url($term_img) . '" alt="" class="invento-filter-pill-img" /> ' : '';
-            echo '<button type="button" class="invento-filter-pill" data-category="' . esc_attr($term->slug) . '">' . $img_html . '<span>' . esc_html($term->name) . '</span></button>';
+            $pill_active = $active_category === $term->slug ? ' is-active' : '';
+            echo '<button type="button" class="invento-filter-pill' . $pill_active . '" data-category="' . esc_attr($term->slug) . '">' . $img_html . '<span>' . esc_html($term->name) . '</span></button>';
         }
         echo '</div>';
 
         // Grid
-        $query = new \WP_Query([
+        $paged = isset($_GET['product_page']) ? max(1, absint($_GET['product_page'])) : 1;
+
+        $query_args = [
             'post_type'      => Product_Post_Type::POST_TYPE,
             'posts_per_page' => (int) $atts['per_page'],
-        ]);
+            'paged'          => $paged,
+        ];
+
+        if ('' !== $active_category) {
+            $query_args['tax_query'] = [
+                [
+                    'taxonomy' => 'invento_product_category',
+                    'field'    => 'slug',
+                    'terms'    => $active_category,
+                ],
+            ];
+        }
+
+        $query = new \WP_Query($query_args);
 
         echo '<div class="invento-filter-grid invento-catalog invento-catalog-' . esc_attr($atts['layout']) . '">';
         if ($query->have_posts()) {
@@ -161,6 +196,13 @@ class Shortcodes implements Service_Interface
             echo '<p>' . esc_html__('No products found.', 'invento') . '</p>';
         }
         echo '</div>';
+
+        // Pagination
+        if ($query->max_num_pages > 1) {
+            echo '<div class="invento-filter-pagination">';
+            echo self::render_filter_pagination($paged, $query->max_num_pages);
+            echo '</div>';
+        }
 
         echo '</div>';
 
@@ -176,10 +218,12 @@ class Shortcodes implements Service_Interface
         $category = isset($_POST['category']) ? sanitize_text_field(wp_unslash($_POST['category'])) : '';
         $per_page = isset($_POST['per_page']) ? absint($_POST['per_page']) : 12;
         $layout   = isset($_POST['layout']) ? sanitize_key($_POST['layout']) : 'grid';
+        $paged    = isset($_POST['paged']) ? max(1, absint($_POST['paged'])) : 1;
 
         $args = [
             'post_type'      => Product_Post_Type::POST_TYPE,
             'posts_per_page' => $per_page ?: 12,
+            'paged'          => $paged,
         ];
 
         if ('' !== $category) {
@@ -205,7 +249,53 @@ class Shortcodes implements Service_Interface
         }
         wp_reset_postdata();
 
-        wp_send_json_success(['html' => ob_get_clean()]);
+        $pagination = '';
+        if ($query->max_num_pages > 1) {
+            $pagination = self::render_filter_pagination($paged, $query->max_num_pages);
+        }
+
+        wp_send_json_success([
+            'html'       => ob_get_clean(),
+            'pagination' => $pagination,
+        ]);
+    }
+
+    /**
+     * Render numbered pagination buttons for the catalog filter.
+     */
+    private static function render_filter_pagination(int $current, int $total): string
+    {
+        if ($total <= 1) {
+            return '';
+        }
+
+        $html = '';
+
+        // Previous button
+        $html .= '<button type="button" class="invento-filter-page invento-filter-page-prev" data-page="' . max(1, $current - 1) . '"' . (1 === $current ? ' disabled' : '') . '>&lsaquo;</button>';
+
+        // Page numbers with ellipsis
+        $range = 2; // Pages to show around current
+
+        for ($i = 1; $i <= $total; $i++) {
+            if ($i === 1 || $i === $total || ($i >= $current - $range && $i <= $current + $range)) {
+                if ($i === $current) {
+                    $html .= '<span class="invento-filter-page is-active">' . $i . '</span>';
+                } else {
+                    $html .= '<button type="button" class="invento-filter-page" data-page="' . $i . '">' . $i . '</button>';
+                }
+                $prev_printed = $i;
+            } else {
+                if (isset($prev_printed) && $prev_printed === $i - 1) {
+                    $html .= '<span class="invento-filter-ellipsis">&hellip;</span>';
+                }
+            }
+        }
+
+        // Next button
+        $html .= '<button type="button" class="invento-filter-page invento-filter-page-next" data-page="' . min($total, $current + 1) . '"' . ($current === $total ? ' disabled' : '') . '>&rsaquo;</button>';
+
+        return $html;
     }
 
     public function product_shortcode(array $atts): string
@@ -383,31 +473,68 @@ class Shortcodes implements Service_Interface
                     return '';
                 }
 
+                // Check for featured video
+                $video_type = get_post_meta($post_id, '_invento_featured_video_type', true);
+                $video_url  = get_post_meta($post_id, '_invento_featured_video_url', true);
+                $has_video  = $video_type && 'none' !== $video_type && $video_url;
+
                 $first_url = wp_get_attachment_image_url((int) $ids[0], 'large');
+                $first_full_url = wp_get_attachment_image_url((int) $ids[0], 'full');
+                $total_media = count($ids) + ($has_video ? 1 : 0);
+
                 $html = '<div class="invento-sc-gallery" data-gallery-id="' . esc_attr((string) $post_id) . '">';
 
-                // Main image display
+                // Main display
                 $html .= '<div class="invento-sc-gallery-main">';
-                if (count($ids) > 1) {
+                if ($total_media > 1) {
                     $html .= '<button type="button" class="invento-sc-gallery-prev"
             aria-label="' . esc_attr__('Previous image', 'invento') . '">&lsaquo;</button>';
                 }
-                $html .= '<img class="invento-sc-gallery-image" src="' . esc_url($first_url) . '" alt="" />';
-                if (count($ids) > 1) {
+                if ($has_video) {
+                    // Video poster with play button as default main display
+                    $poster_url = has_post_thumbnail($post_id)
+                        ? get_the_post_thumbnail_url($post_id, 'large')
+                        : $first_url;
+                    $html .= '<div class="invento-featured-video invento-sc-gallery-video" data-video-type="' . esc_attr($video_type) . '" data-video-url="' . esc_url($video_url) . '">';
+                    $html .= '<div class="invento-video-poster">';
+                    $html .= '<img class="invento-sc-gallery-image" src="' . esc_url($poster_url) . '" alt="" />';
+                    $html .= '<button type="button" class="invento-video-play" aria-label="' . esc_attr__('Play video', 'invento') . '"></button>';
+                    $html .= '</div></div>';
+                } else {
+                    $html .= '<img class="invento-sc-gallery-image" src="' . esc_url($first_url) . '" data-lightbox="' . esc_url($first_full_url) . '" alt="" />';
+                }
+                if ($total_media > 1) {
                     $html .= '<button type="button" class="invento-sc-gallery-next"
             aria-label="' . esc_attr__('Next image', 'invento') . '">&rsaquo;</button>';
                 }
                 $html .= '</div>';
 
                 // Thumbnail strip
-                if (count($ids) > 1) {
+                if ($total_media > 1) {
                     $html .= '<div class="invento-sc-gallery-thumbs">';
+
+                    // Video thumbnail (always first)
+                    if ($has_video) {
+                        $poster_thumb = has_post_thumbnail($post_id)
+                            ? get_the_post_thumbnail_url($post_id, 'thumbnail')
+                            : wp_get_attachment_image_url((int) $ids[0], 'thumbnail');
+                        $poster_large = has_post_thumbnail($post_id)
+                            ? get_the_post_thumbnail_url($post_id, 'large')
+                            : $first_url;
+                        $html .= '<button type="button" class="invento-sc-gallery-thumb invento-sc-gallery-thumb-video is-active" data-media-type="video" data-video-type="' . esc_attr($video_type) . '" data-video-url="' . esc_url($video_url) . '" data-poster="' . esc_url($poster_large) . '">';
+                        $html .= '<img src="' . esc_url($poster_thumb) . '" alt="" />';
+                        $html .= '<span class="invento-sc-gallery-play"></span>';
+                        $html .= '</button>';
+                    }
+
+                    // Image thumbnails
                     foreach ($ids as $index => $attachment_id) {
                         $thumb_url = wp_get_attachment_image_url((int) $attachment_id, 'thumbnail');
                         $large_url = wp_get_attachment_image_url((int) $attachment_id, 'large');
-                        $active = 0 === $index ? ' is-active' : '';
+                        $full_url = wp_get_attachment_image_url((int) $attachment_id, 'full');
+                        $active = (! $has_video && 0 === $index) ? ' is-active' : '';
                         $html .= '<button type="button" class="invento-sc-gallery-thumb' . $active . '"
-            data-full="' . esc_url($large_url) . '">';
+            data-full="' . esc_url($large_url) . '" data-lightbox="' . esc_url($full_url) . '">';
                         $html .= '<img src="' . esc_url($thumb_url) . '" alt="" />';
                         $html .= '</button>';
                     }
@@ -486,7 +613,12 @@ class Shortcodes implements Service_Interface
                 if ('' === trim($content)) {
                     return '';
                 }
-                return wp_kses_post(wpautop($content));
+                $html_content = wp_kses_post(wpautop($content));
+                return '<div class="invento-sc-description">'
+                    . '<div class="invento-sc-description-content">' . $html_content . '</div>'
+                    . '<button type="button" class="invento-sc-description-toggle" style="display:none;">'
+                    . esc_html__('See more', 'invento') . '</button>'
+                    . '</div>';
 
             case 'specifications':
                 return \Invento\Helpers\Formatting::render_specs_table($post_id);

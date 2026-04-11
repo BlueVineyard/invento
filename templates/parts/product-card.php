@@ -75,7 +75,12 @@ if ( ! $short_description ) {
 
     $rendered['excerpt'] = function () use ( $short_description ) {
         if ( $short_description ) {
-            echo '<p class="invento-card-excerpt">' . esc_html( wp_trim_words( $short_description, 20 ) ) . '</p>';
+            $settings   = get_option( 'invento_settings', [] );
+            $char_limit = isset( $settings['excerpt_char_limit'] ) ? (int) $settings['excerpt_char_limit'] : 30;
+            $excerpt    = mb_strlen( $short_description ) > $char_limit
+                ? mb_substr( $short_description, 0, $char_limit ) . '...'
+                : $short_description;
+            echo '<p class="invento-card-excerpt">' . esc_html( $excerpt ) . '</p>';
         }
     };
 

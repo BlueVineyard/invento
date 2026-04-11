@@ -518,6 +518,45 @@ input[type="number"]::-webkit-outer-spin-button {
   align-items: center;
 }
 
+/* Description see-more toggle */
+.invento-sc-description-content {
+  line-height: 1.6;
+  max-height: 4.8em;
+  overflow: hidden;
+  position: relative;
+}
+
+.invento-sc-description.is-collapsed .invento-sc-description-content::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2em;
+  background: linear-gradient(transparent, #fff);
+  pointer-events: none;
+}
+
+.invento-sc-description.is-short .invento-sc-description-content,
+.invento-sc-description.is-expanded .invento-sc-description-content {
+  max-height: none;
+  overflow: visible;
+}
+
+.invento-sc-description-toggle {
+  background: none;
+  border: none;
+  color: #016cb2;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 4px 0;
+  margin-top: 4px;
+}
+
+.invento-sc-description-toggle:hover {
+  text-decoration: underline;
+}
+
 /* Shortcode gallery slider */
 .invento-sc-gallery {
   max-width: 600px;
@@ -537,6 +576,7 @@ input[type="number"]::-webkit-outer-spin-button {
   height: 100%;
   object-fit: contain;
   display: block;
+  cursor: zoom-in;
 }
 
 .invento-sc-gallery-prev,
@@ -604,6 +644,252 @@ input[type="number"]::-webkit-outer-spin-button {
 
 .invento-sc-gallery-thumb.is-active {
   border-color: #016cb2;
+}
+
+/* Gallery video thumb play button */
+.invento-sc-gallery-thumb-video {
+  position: relative;
+}
+
+.invento-sc-gallery-play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 40px;
+  height: 40px;
+  background: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.invento-sc-gallery-play::before {
+  content: "";
+  display: block;
+  width: 0;
+  height: 0;
+  margin-left: 3px;
+  border-top: 8px solid transparent;
+  border-bottom: 8px solid transparent;
+  border-left: 13px solid #333;
+}
+
+/* Video in main gallery display */
+.invento-sc-gallery-video {
+  width: 100%;
+  height: 100%;
+}
+
+.invento-sc-gallery-video .invento-video-poster {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.invento-sc-gallery-video .invento-video-poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Filter pagination */
+.invento-filter-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  margin-top: 24px;
+  padding: 8px 0;
+}
+
+.invento-filter-page {
+  min-width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  background: #fff;
+  color: #333;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  padding: 0 8px;
+}
+
+.invento-filter-page:hover:not(:disabled):not(.is-active) {
+  background: #f0f0f0;
+  border-color: #bbb;
+}
+
+.invento-filter-page.is-active {
+  background: #016cb2;
+  color: #fff;
+  border-color: #016cb2;
+  cursor: default;
+}
+
+.invento-filter-page:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.invento-filter-ellipsis {
+  color: #999;
+  font-size: 14px;
+  padding: 0 4px;
+}
+
+/* Shortcode gallery lightbox */
+.invento-sc-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 10001;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.invento-sc-lightbox.is-open {
+  display: flex;
+}
+
+.invento-sc-lightbox-open {
+  overflow: hidden;
+}
+
+.invento-sc-lightbox-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.92);
+}
+
+.invento-sc-lightbox-content {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.invento-sc-lightbox-img-wrap {
+  max-width: 90vw;
+  max-height: 90vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.invento-sc-lightbox-img {
+  max-width: 100%;
+  max-height: 90vh;
+  object-fit: contain;
+  cursor: zoom-in;
+  user-select: none;
+}
+
+/* Zoomed state */
+.invento-sc-lightbox-content.is-zoomed .invento-sc-lightbox-img-wrap {
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.invento-sc-lightbox-content.is-zoomed .invento-sc-lightbox-img {
+  max-width: none;
+  max-height: none;
+  width: auto;
+  height: auto;
+  object-fit: unset;
+  cursor: zoom-out;
+}
+
+.invento-sc-lightbox-close {
+  position: absolute;
+  top: 16px;
+  right: 20px;
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 36px;
+  cursor: pointer;
+  z-index: 3;
+  line-height: 1;
+  opacity: 0.8;
+  transition: opacity 0.2s;
+}
+
+.invento-sc-lightbox-close:hover {
+  opacity: 1;
+}
+
+.invento-sc-lightbox-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  font-size: 28px;
+  cursor: pointer;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.invento-sc-lightbox-nav:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.invento-sc-lightbox-prev {
+  left: 16px;
+}
+
+.invento-sc-lightbox-next {
+  right: 16px;
+}
+
+.invento-sc-lightbox-counter {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+  z-index: 3;
+}
+
+@media (max-width: 600px) {
+  .invento-sc-lightbox-nav {
+    width: 36px;
+    height: 36px;
+    font-size: 22px;
+  }
+
+  .invento-sc-lightbox-prev {
+    left: 8px;
+  }
+
+  .invento-sc-lightbox-next {
+    right: 8px;
+  }
+
+  .invento-sc-lightbox-close {
+    top: 10px;
+    right: 12px;
+    font-size: 28px;
+  }
 }
 
 /* Quote modal */
@@ -783,4 +1069,10 @@ input[type="number"]::-webkit-outer-spin-button {
 
 .invento-specs-table td {
   font-weight: 400;
+}
+
+.invento-field-features li {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
 }

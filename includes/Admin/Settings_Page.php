@@ -117,6 +117,14 @@ class Settings_Page implements Service_Interface {
         );
 
         add_settings_field(
+            'excerpt_char_limit',
+            __( 'Card Excerpt Character Limit', 'invento' ),
+            [ $this, 'render_excerpt_char_limit_field' ],
+            'invento-settings',
+            'invento_general'
+        );
+
+        add_settings_field(
             'enable_variations',
             __( 'Enable Variations', 'invento' ),
             [ $this, 'render_enable_variations_field' ],
@@ -147,6 +155,7 @@ class Settings_Page implements Service_Interface {
         $sanitized['quote_button_global_label'] = isset( $settings['quote_button_global_label'] ) ? sanitize_text_field( $settings['quote_button_global_label'] ) : '';
         $sanitized['catalog_layout']            = isset( $settings['catalog_layout'] ) && in_array( $settings['catalog_layout'], [ 'grid', 'list' ], true ) ? $settings['catalog_layout'] : 'grid';
         $sanitized['products_per_page']         = isset( $settings['products_per_page'] ) ? max( 1, absint( $settings['products_per_page'] ) ) : 12;
+        $sanitized['excerpt_char_limit']        = isset( $settings['excerpt_char_limit'] ) ? max( 1, absint( $settings['excerpt_char_limit'] ) ) : 30;
         $sanitized['enable_variations']         = ! empty( $settings['enable_variations'] ) ? '1' : '0';
         $sanitized['filter_all_image_id']       = isset( $settings['filter_all_image_id'] ) ? absint( $settings['filter_all_image_id'] ) : 0;
         $sanitized['placeholder_image_id']      = isset( $settings['placeholder_image_id'] ) ? absint( $settings['placeholder_image_id'] ) : 0;
@@ -658,6 +667,13 @@ class Settings_Page implements Service_Interface {
     protected function render_custom_fields_info(): void {
         $fields = [
             [
+                'title' => __( 'SKU / Card Title', 'invento' ),
+                'key'   => '_invento_sku',
+                'type'  => 'string',
+                'code'  => '$sku = get_post_meta( get_the_ID(), \'_invento_sku\', true );
+echo esc_html( $sku );',
+            ],
+            [
                 'title' => __( 'Short Description', 'invento' ),
                 'key'   => '_invento_short_description',
                 'type'  => 'string',
@@ -747,17 +763,16 @@ foreach ( $icon_rows as $row ) {
             [
                 'title' => __( 'Main Features', 'invento' ),
                 'key'   => '_invento_main_features',
-                'type'  => 'JSON array of objects [{title, description}, ...]',
+                'type'  => 'JSON array of objects [{title}, ...]',
                 'code'  => '$features = json_decode( (string) get_post_meta( get_the_ID(), \'_invento_main_features\', true ), true );
 $features = is_array( $features ) ? $features : [];
 
+echo \'<ul>\';
 foreach ( $features as $feature ) {
     $title = isset( $feature[\'title\'] ) ? $feature[\'title\'] : \'\';
-    $desc  = isset( $feature[\'description\'] ) ? $feature[\'description\'] : \'\';
-
-    echo \'<h4>\' . esc_html( $title ) . \'</h4>\';
-    echo \'<p>\' . esc_html( $desc ) . \'</p>\';
-}',
+    echo \'<li>\' . esc_html( $title ) . \'</li>\';
+}
+echo \'</ul>\';',
             ],
             [
                 'title' => __( 'Quote Button Mode', 'invento' ),
@@ -805,11 +820,19 @@ echo esc_html( $regular_price );',
 echo esc_html( $sale_price );',
             ],
             [
-                'title' => __( 'Discount Percentage', 'invento' ),
-                'key'   => '_invento_discount_percent',
-                'type'  => 'string',
-                'code'  => '$discount = get_post_meta( get_the_ID(), \'_invento_discount_percent\', true );
-echo esc_html( $discount );',
+                'title' => __( 'Product Specifications', 'invento' ),
+                'key'   => '_invento_specifications',
+                'type'  => 'JSON array of objects [{label, value}, ...]',
+                'code'  => '$specs = json_decode( (string) get_post_meta( get_the_ID(), \'_invento_specifications\', true ), true );
+$specs = is_array( $specs ) ? $specs : [];
+
+foreach ( $specs as $spec ) {
+    $label = isset( $spec[\'label\'] ) ? $spec[\'label\'] : \'\';
+    $value = isset( $spec[\'value\'] ) ? $spec[\'value\'] : \'\';
+
+    echo \'<strong>\' . esc_html( $label ) . \':</strong> \';
+    echo esc_html( $value ) . \'<br>\';
+}',
             ],
         ];
 
@@ -898,24 +921,37 @@ echo esc_html( $discount );',
                     '[invento_field field="discount_percent"]',
                 ],
                 'field_values' => [
+                    'sku'               => __( 'SKU / Card title override.', 'invento' ),
                     'short_description' => __( 'Product short description text.', 'invento' ),
                     'stock_mode'        => __( 'Stock mode: "none", "simple", or "label".', 'invento' ),
                     'stock_quantity'    => __( 'Stock quantity number.', 'invento' ),
                     'stock_label'       => __( 'Custom stock label text.', 'invento' ),
                     'video_type'        => __( 'Video type: "none", "self_hosted", "youtube", "vimeo", or "other".', 'invento' ),
                     'video_url'         => __( 'Video URL.', 'invento' ),
-                    'gallery'           => __( 'All gallery images rendered as &lt;img&gt; tags.', 'invento' ),
-                    'gallery_first'     => __( 'First gallery image only, rendered as a single &lt;img&gt; tag.', 'invento' ),
+                    'gallery'           => __( 'Gallery images (falls back to featured image, then placeholder).', 'invento' ),
+                    'gallery_first'     => __( 'First gallery image (falls back to featured image, then placeholder).', 'invento' ),
                     'variations'        => __( 'Variations rendered as name: options pairs.', 'invento' ),
                     'icon_specs'        => __( 'Icon spec rows rendered with icon, title, and description.', 'invento' ),
-                    'features'          => __( 'Main features rendered with title and description.', 'invento' ),
+                    'features'          => __( 'Main features rendered as a simple list.', 'invento' ),
                     'quote_mode'        => __( 'Quote button mode: "global", "product", or "disabled".', 'invento' ),
-                    'quote_label'       => __( 'Quote button label text.', 'invento' ),
+                    'quote_label'       => __( 'Quote button label (falls back to global setting, then "Request a Quote").', 'invento' ),
                     'quote_url'         => __( 'Quote button URL.', 'invento' ),
                     'description'       => __( 'Product description (WYSIWYG rich text content).', 'invento' ),
                     'regular_price'     => __( 'Regular price text.', 'invento' ),
                     'sale_price'        => __( 'Sale price text.', 'invento' ),
-                    'discount_percent'  => __( 'Discount percentage text.', 'invento' ),
+                    'specifications'    => __( 'Product specifications rendered as a 4-column table.', 'invento' ),
+                ],
+            ],
+            [
+                'title'       => __( 'Specifications Table', 'invento' ),
+                'shortcode'   => '[invento_specs]',
+                'description' => __( 'Outputs the product specifications as a formatted 4-column table (2 label-value pairs per row). Works inside any WordPress loop automatically, or accepts an explicit product ID.', 'invento' ),
+                'attributes'  => [
+                    'id' => __( 'The product post ID. Optional — defaults to the current post in the loop.', 'invento' ),
+                ],
+                'examples'    => [
+                    '[invento_specs]',
+                    '[invento_specs id="123"]',
                 ],
             ],
         ];
@@ -999,6 +1035,13 @@ echo esc_html( $discount );',
         $settings = get_option( 'invento_settings', [] );
         $value    = isset( $settings['products_per_page'] ) ? (int) $settings['products_per_page'] : 12;
         echo '<input type="number" min="1" class="small-text" name="invento_settings[products_per_page]" value="' . esc_attr( (string) $value ) . '" />';
+    }
+
+    public function render_excerpt_char_limit_field(): void {
+        $settings = get_option( 'invento_settings', [] );
+        $value    = isset( $settings['excerpt_char_limit'] ) ? (int) $settings['excerpt_char_limit'] : 30;
+        echo '<input type="number" min="1" class="small-text" name="invento_settings[excerpt_char_limit]" value="' . esc_attr( (string) $value ) . '" />';
+        echo '<p class="description">' . esc_html__( 'Maximum number of characters for the excerpt on product cards.', 'invento' ) . '</p>';
     }
 
     public function render_filter_all_image_field(): void {

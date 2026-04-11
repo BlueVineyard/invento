@@ -77,7 +77,7 @@ class Formatting {
         }
 
         if ( empty( $global_url ) ) {
-            return '';
+            $global_url = get_permalink( $product_id );
         }
 
         return sprintf( '<a class="invento-quote-button" href="%s"%s><span>%s</span>%s</a>', esc_url( $global_url ), $data_attrs, esc_html( $global_label ), $arrow_svg );
