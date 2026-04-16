@@ -455,9 +455,13 @@ class Shortcodes implements Service_Interface
                 $ids = json_decode((string) $raw_value, true);
                 $ids = is_array($ids) ? $ids : [];
 
-                // Fallback to featured image
-                if (empty($ids) && has_post_thumbnail($post_id)) {
-                    $ids = [get_post_thumbnail_id($post_id)];
+                // Prepend featured image as the first item (if not already in gallery)
+                if (has_post_thumbnail($post_id)) {
+                    $featured_id = (int) get_post_thumbnail_id($post_id);
+                    $ids = array_filter($ids, function ($id) use ($featured_id) {
+                        return (int) $id !== $featured_id;
+                    });
+                    array_unshift($ids, $featured_id);
                 }
 
                 // Fallback to placeholder
